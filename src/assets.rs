@@ -11,6 +11,7 @@ use std::ops::Deref;
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Images {
+    Testing
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
@@ -29,7 +30,7 @@ pub enum AssetTypes {
 }
 
 pub enum AssetData {
-    Image(YaffeTexture),
+    Image(Texture),
     Font(Font),
 }
 
@@ -67,11 +68,11 @@ impl AssetSlot {
         }
     }
 }
-pub struct YaffeTexture {
+pub struct Texture {
     image: Rc<ImageHandle>,
     bounds: Option<Rectangle>,
 }
-impl YaffeTexture {
+impl Texture {
     pub fn render(&self, graphics: &mut Graphics2D, rect: Rectangle) {
         if let Some(b) = &self.bounds {
             graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, b.clone(), &self.image);
@@ -82,7 +83,7 @@ impl YaffeTexture {
 
     pub fn get_handle(&self) -> &Rc<ImageHandle> { &self.image }
 }
-impl Deref for YaffeTexture {
+impl Deref for Texture {
     type Target = Rc<ImageHandle>;
 
     fn deref(&self) -> &Self::Target {
@@ -93,7 +94,9 @@ impl Deref for YaffeTexture {
 static mut ASSET_CACHE: Option<PooledCache<32, AssetTypes, AssetSlot>> = None;
 
 pub fn initialize_asset_cache() {
-    unsafe { ASSET_CACHE = Some(PooledCache::new()); }
+    let mut cache = PooledCache::new();
+    cache.insert(AssetTypes::Image(Images::Testing), AssetSlot::new(r"C:\Users\allex\Pictures\1bnn3.jpg"));
+    unsafe { ASSET_CACHE = Some(cache); }
 }
 
         // for tex in read_texture_atlas("./Assets/atlas.tex") {
@@ -119,20 +122,20 @@ pub fn initialize_asset_cache() {
         //         _ => panic!("Unknown image found in texture atlas"),
         //     };
 
-        //     let texture = YaffeTexture { image: image.clone(), bounds: Some(tex.1) };
+        //     let texture = Texture { image: image.clone(), bounds: Some(tex.1) };
         //     map.insert(AssetTypes::Image(image_type), AssetSlot::preloaded("./Assets/packed.png", texture));
 
 fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {
     unsafe { ASSET_CACHE.as_mut().unwrap().get_mut(&t).log_message_and_panic("Invalid asset slot request") }
 }
 
-pub fn request_image<'a>(piet: &mut Graphics2D, queue: &mut JobQueue, image: Images) -> Option<&'a YaffeTexture> {
+pub fn request_image<'a>(piet: &mut Graphics2D, queue: &mut JobQueue, image: Images) -> Option<&'a Texture> {
     let slot = get_slot_mut(AssetTypes::Image(image));
 
     request_asset_image(piet, queue, slot)
 }
 
-pub fn request_asset_image<'a>(graphics: &mut Graphics2D, queue: &mut JobQueue, slot: &'a mut AssetSlot) -> Option<&'a YaffeTexture> {
+pub fn request_asset_image<'a>(graphics: &mut Graphics2D, queue: &mut JobQueue, slot: &'a mut AssetSlot) -> Option<&'a Texture> {
     if slot.state.load(Ordering::Acquire) == ASSET_STATE_UNLOADED {
         if let Ok(ASSET_STATE_UNLOADED) = slot.state.compare_exchange(ASSET_STATE_UNLOADED, ASSET_STATE_PENDING, Ordering::Acquire, Ordering::Relaxed) {
 
@@ -144,7 +147,7 @@ pub fn request_asset_image<'a>(graphics: &mut Graphics2D, queue: &mut JobQueue, 
     if let None = slot.image {
         if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
             let image = graphics.create_image_from_raw_pixels(ImageDataType::RGBA, ImageSmoothingMode::Linear, slot.dimensions, &slot.data).log_and_panic();
-            slot.image = Some(AssetData::Image(YaffeTexture { image: Rc::new(image), bounds: None }));
+            slot.image = Some(AssetData::Image(Texture { image: Rc::new(image), bounds: None }));
             slot.data = Vec::with_capacity(0);
         }
     }
@@ -194,7 +197,7 @@ pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
     }
 }
 
-// pub fn clear_old_cache(state: &crate::YaffeState) {
+// pub fn clear_old_cache(state: &crate::State) {
 //     let map = unsafe { FILE_ASSET_MAP.as_mut().unwrap() };
 
 //     let mut to_remove = vec!();

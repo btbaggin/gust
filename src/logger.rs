@@ -5,8 +5,8 @@ use std::fmt::Debug;
 pub use log::{error, warn, info, trace, debug};
 use log::{Log, Level, LevelFilter, Metadata, Record};
 
-struct YaffeLogger;
-impl Log for YaffeLogger {
+struct Logger;
+impl Log for Logger {
     fn enabled(&self, _: &Metadata) -> bool {
         true
     }
@@ -37,7 +37,7 @@ pub fn set_log_level(level: &str) {
     log::set_max_level(level)
 }
 
-static LOGGER: YaffeLogger = YaffeLogger;
+static LOGGER: Logger = Logger;
 lazy_static::lazy_static! {
     pub static ref FILE: Mutex<File> = Mutex::new(OpenOptions::new().create(true).write(true).open("./log.txt").unwrap());
 }

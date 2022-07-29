@@ -1,4 +1,6 @@
 use std::thread;
+use std::sync::Arc;
+use std::cell::RefCell;
 use crate::logger::*;
 use std::collections::HashSet;
 
@@ -21,6 +23,7 @@ impl RawDataPointer {
     }
 }
 
+pub type ThreadSafeJobQueue = Arc<std::sync::Mutex<RefCell<JobQueue>>>;
 pub struct JobQueue {
     queue: spmc::Sender<JobType>,
     set: HashSet<String>,
