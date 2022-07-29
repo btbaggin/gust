@@ -1,0 +1,15 @@
+[package]
+name = "gust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+speedy2d = { version = "1.7.*", default-features = false, features = ["image-loading"] }
+log = { version = "0.4.14" }
+backtrace = "0.3.64"
+chrono = "^0.4"
+lazy_static = "1.4.0"
+image = "0.24.*"
+spmc = "^0.3"
