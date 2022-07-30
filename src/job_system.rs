@@ -2,7 +2,6 @@ use std::thread;
 use std::sync::Arc;
 use std::cell::RefCell;
 use crate::logger::*;
-use std::collections::HashSet;
 
 //This is used to pass a raw pointer to the assetslot between threads
 //Use very rarely when mutability and lifetimes cause issues
@@ -26,7 +25,6 @@ impl RawDataPointer {
 pub type ThreadSafeJobQueue = Arc<std::sync::Mutex<RefCell<JobQueue>>>;
 pub struct JobQueue {
     queue: spmc::Sender<JobType>,
-    set: HashSet<String>,
 } 
 impl JobQueue {
     /// Sends a message to the job system for asynchronous processing
@@ -51,7 +49,7 @@ pub fn start_job_system() -> (JobQueue, std::sync::mpsc::Receiver<u8>) {
         });
     }
 
-    (JobQueue { queue: tx, set: HashSet::new() }, notify_rx)
+    (JobQueue { queue: tx }, notify_rx)
 }
 
 fn poll_pending_jobs(queue: spmc::Receiver<JobType>, notify: std::sync::mpsc::Sender<u8>) {

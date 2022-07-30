@@ -4,7 +4,7 @@ use std::cmp::Eq;
 use std::hash::Hash;
 use std::mem::MaybeUninit;
 use std::sync::Mutex;
-use std::collections::linked_list::Iter;
+use std::collections::linked_list::IterMut;
 
 pub type PooledCacheIndex = (usize, usize);
 
@@ -74,18 +74,23 @@ impl<const C: usize, K: Eq + Hash, T> PooledCache<C, K, T> {
         None
     }
 
+    pub fn get_index(&self, index: PooledCacheIndex) -> Option<&T> {
+        let _lock = self.lock.lock().unwrap();
+        let pool = self.data.iter().skip(index.0).next().unwrap();
+        pool.get(index.1)
+    }
+    pub fn get_index_mut(&mut self, index: PooledCacheIndex) -> Option<&mut T> { 
+        let _lock = self.lock.lock().unwrap();
+        let pool = self.data.iter_mut().skip(index.0).next().unwrap();
+        pool.get_mut(index.1)
+    }
+
     pub fn contains(&self, file: &K) -> bool {
         self.map.get(file).is_some()
     }
 
-    pub fn remove_at(&mut self, index: PooledCacheIndex) {
-        let _lock = self.lock.lock().unwrap();
-        let pool = self.data.iter_mut().skip(index.0).next().unwrap();
-        pool.data[index.1] = None;
-    }
-
-    pub fn iter(&self) -> PooledCacheIter<C, T> {
-        PooledCacheIter { pools: self.data.iter(), curr: None, pool_index: 0, index: 0 }
+    pub fn iter(&mut self) -> PooledCacheIter<C, T> {
+        PooledCacheIter::new(&mut self.data)
     }
 
     pub fn insert(&mut self, file: K, data: T) {
@@ -104,31 +109,37 @@ impl<const C: usize, K: Eq + Hash, T> PooledCache<C, K, T> {
 }
 
 pub struct PooledCacheIter<'a, const C: usize, T> {
-    pools: Iter<'a, CachePool<C, T>>,
-    curr: Option<&'a CachePool<C, T>>,
+    pools: IterMut<'a, CachePool<C, T>>,
+    curr: Option<&'a mut CachePool<C, T>>,
     pool_index: usize,
     index: usize,
 }
+impl<'a, const C: usize, T> PooledCacheIter<'a, C, T> {
+    fn new(data: &'a mut LinkedList<CachePool<C, T>>) -> PooledCacheIter<'a, C, T> {
+        PooledCacheIter { 
+            pools: data.iter_mut(),
+            curr: None, 
+            pool_index: 0, 
+            index: 0 
+        }
+    }
+}
 impl<'a, const C: usize, T> Iterator for PooledCacheIter<'a, C, T> {
-    type Item = (PooledCacheIndex, &'a T);
+    type Item = PooledCacheIndex;
     fn next(&mut self) -> Option<Self::Item> {
         self.index += 1;
-        if self.curr.is_none() || self.index >= self.curr.unwrap().count {
+        if self.curr.is_none() || self.index >= self.curr.as_ref().unwrap().count {
             self.curr = self.pools.next();
             self.index = 0;
             self.pool_index += 1;
         }
-        match self.curr {
-            None => None,
-            Some(p) => {
-                let index = (self.pool_index - 1, self.index);
-                let data = p.get(self.index);
-                if let None = data {
-                    return None; //TODO this isnt quite right
-                } else {
-                    return Some((index, data.unwrap()));
-                }
-            },
+
+        let index = (self.pool_index - 1, self.index);
+        if let Some(p) = &mut self.curr {
+            if let Some(_) = p.data[self.index] {
+                return Some(index);
+            }
         }
+        return None;
     }
 }

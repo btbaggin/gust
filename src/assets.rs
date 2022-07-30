@@ -1,13 +1,13 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::rc::Rc;
-use crate::job_system::{JobQueue, JobType, RawDataPointer};
+use crate::job_system::{JobType, RawDataPointer};
 use crate::logger::{PanicLogEntry, info, warn};
 use speedy2d::font::*;
 use speedy2d::image::*;
-use speedy2d::{Graphics2D, shape::Rectangle};
+use speedy2d::shape::Rectangle;
+use crate::graphics::{Graphics, Texture};
 use std::time::Instant;
 use crate::pooled_cache::PooledCache;
-use std::ops::Deref;
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Images {
@@ -67,27 +67,11 @@ impl AssetSlot {
             last_request: Instant::now(),
         }
     }
-}
-pub struct Texture {
-    image: Rc<ImageHandle>,
-    bounds: Option<Rectangle>,
-}
-impl Texture {
-    pub fn render(&self, graphics: &mut Graphics2D, rect: Rectangle) {
-        if let Some(b) = &self.bounds {
-            graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, b.clone(), &self.image);
-        } else {
-            graphics.draw_rectangle_image(rect, &self.image);
-        }
-    }
 
-    pub fn get_handle(&self) -> &Rc<ImageHandle> { &self.image }
-}
-impl Deref for Texture {
-    type Target = Rc<ImageHandle>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.image
+    fn clear(&mut self) {
+        self.data = Vec::with_capacity(0);
+        self.image = None;
+        self.state.swap(ASSET_STATE_UNLOADED, Ordering::AcqRel);
     }
 }
 
@@ -129,16 +113,18 @@ fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {
     unsafe { ASSET_CACHE.as_mut().unwrap().get_mut(&t).log_message_and_panic("Invalid asset slot request") }
 }
 
-pub fn request_image<'a>(piet: &mut Graphics2D, queue: &mut JobQueue, image: Images) -> Option<&'a Texture> {
+pub fn request_image<'a>(piet: &mut Graphics, image: Images) -> Option<&'a Texture> {
     let slot = get_slot_mut(AssetTypes::Image(image));
 
-    request_asset_image(piet, queue, slot)
+    request_asset_image(piet, slot)
 }
 
-pub fn request_asset_image<'a>(graphics: &mut Graphics2D, queue: &mut JobQueue, slot: &'a mut AssetSlot) -> Option<&'a Texture> {
+pub fn request_asset_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot) -> Option<&'a Texture> {
     if slot.state.load(Ordering::Acquire) == ASSET_STATE_UNLOADED {
         if let Ok(ASSET_STATE_UNLOADED) = slot.state.compare_exchange(ASSET_STATE_UNLOADED, ASSET_STATE_PENDING, Ordering::Acquire, Ordering::Relaxed) {
 
+            let lock = graphics.queue.lock().log_and_panic();
+            let mut queue = lock.borrow_mut();
             queue.send(JobType::LoadImage((slot.path.clone(), RawDataPointer::new(slot))));
             return None;
         }
@@ -147,7 +133,7 @@ pub fn request_asset_image<'a>(graphics: &mut Graphics2D, queue: &mut JobQueue, 
     if let None = slot.image {
         if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
             let image = graphics.create_image_from_raw_pixels(ImageDataType::RGBA, ImageSmoothingMode::Linear, slot.dimensions, &slot.data).log_and_panic();
-            slot.image = Some(AssetData::Image(Texture { image: Rc::new(image), bounds: None }));
+            slot.image = Some(AssetData::Image(Texture::new(Rc::new(image), None)));
             slot.data = Vec::with_capacity(0);
         }
     }
@@ -166,6 +152,7 @@ pub fn request_font(font: Fonts) -> &'static Font {
     assert_eq!(slot.state.load(Ordering::Acquire), ASSET_STATE_LOADED, "requested preloaded image, but image is not loaded");
 
     if let None = slot.image {
+        //TODO async
         let font = speedy2d::font::Font::new(&slot.data).log_and_panic();
         slot.image = Some(AssetData::Font(font));
     }
@@ -197,37 +184,36 @@ pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
     }
 }
 
-// pub fn clear_old_cache(state: &crate::State) {
-//     let map = unsafe { FILE_ASSET_MAP.as_mut().unwrap() };
+pub fn clear_old_cache(settings: &crate::settings::SettingsFile) {
+    use crate::pooled_cache::PooledCacheIndex;
+    let map = unsafe { ASSET_CACHE.as_mut().unwrap() };
 
-//     let mut to_remove = vec!();
-//     let mut total_memory = 0;
-//     let mut last_used = ((0, 0), Instant::now());
-//     for (index, value) in map.iter() {
-//         let slot = value.borrow();
-//         if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
-//             total_memory += slot.data.len();
+    let mut total_memory = 0;
+    let mut last_used_index: Option<PooledCacheIndex> = None;
+    let mut last_request = Instant::now();
+    let indices = map.iter().collect::<Vec<PooledCacheIndex>>();
+    for index in indices {
+        let slot = map.get_index_mut(index).unwrap();
+        if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
+            total_memory += slot.data.len();
 
-//             //Find oldest asset
-//             if slot.last_request < last_used.1 {
-//                 last_used = (index, slot.last_request);
-//             } else if slot.last_request.elapsed().as_secs() > 60 {
-//                 //If it hasnt been requested in a minute, remove it regardless
-//                 to_remove.push(index);
-//             }
-//         }
-//     }
-//     //Remove oldest asset if we are over our memory threshold
-//     //This will happen once per frame until we are under the threshold
-//     if total_memory > 1024 * 1024 * state.settings.get_i32(crate::settings::SettingNames::AssetCacheSizeMb) as usize {
-//         to_remove.push(last_used.0);
-//     }
-
-//     let _lock = FILE_ASSET_LOCK.lock().unwrap();
-//     for r in to_remove {
-//         map.remove_at(r);
-//     }
-// }
+            //Find oldest asset
+            if slot.last_request < last_request {
+                last_request = slot.last_request;
+                last_used_index = Some(index);
+            } else if slot.last_request.elapsed().as_secs() > 60 {
+                //If it hasnt been requested in a minute, remove it regardless
+                slot.clear();
+            }
+        }
+    }
+    //Remove oldest asset if we are over our memory threshold
+    //This will happen once per frame until we are under the threshold
+    if total_memory > 1024 * 1024 * settings.get_i32(crate::settings::SettingNames::AssetCacheSizeMb) as usize {
+        let slot = map.get_index_mut(last_used_index.unwrap()).unwrap();
+        slot.clear();
+    }
+}
 
 fn read_texture_atlas(path: &str) -> Vec<(String, Rectangle)> {
     use std::convert::TryInto;
