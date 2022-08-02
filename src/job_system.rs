@@ -22,14 +22,33 @@ impl RawDataPointer {
     }
 }
 
+pub struct Job {
+    /// State is used for general data that is shared between groups of jobs
+    /// If there is just a single job, state is not needed eg AssetSlot for asset loading jobs
+    state: Option<RawDataPointer>,
+    job_type: JobType
+}
+
+pub enum JobType {
+    LoadImage(&'static str),
+    LoadFont(&'static str),
+    LoadSound(&'static str),
+}
+
 pub type ThreadSafeJobQueue = Arc<std::sync::Mutex<RefCell<JobQueue>>>;
 pub struct JobQueue {
-    queue: spmc::Sender<JobType>,
+    queue: spmc::Sender<Job>,
 } 
 impl JobQueue {
     /// Sends a message to the job system for asynchronous processing
     /// Each new message type needs custom handling
-    pub fn send(&mut self, job: JobType) {
+    pub fn send_with_state<T>(&mut self, job_type: JobType, state: &mut T) {
+        let job = Job { state: Some(RawDataPointer::new(state)), job_type };
+        self.queue.send(job).unwrap()
+    }
+
+    pub fn send<T>(&mut self, job_type: JobType) {
+        let job = Job { state: None, job_type };
         self.queue.send(job).unwrap()
     }
 }
@@ -52,21 +71,16 @@ pub fn start_job_system() -> (JobQueue, std::sync::mpsc::Receiver<u8>) {
     (JobQueue { queue: tx }, notify_rx)
 }
 
-fn poll_pending_jobs(queue: spmc::Receiver<JobType>, notify: std::sync::mpsc::Sender<u8>) {
+fn poll_pending_jobs(queue: spmc::Receiver<Job>, notify: std::sync::mpsc::Sender<u8>) {
     loop {
-        let msg = queue.recv().log_and_panic();
-        match msg {
-            JobType::LoadImage((path, slot)) => crate::assets::load_image_async(path, slot),
+        let job = queue.recv().log_and_panic();
+        let state = job.state;
+        match job.job_type {
+            JobType::LoadImage(path) => crate::assets::load_image_async(path, state.unwrap()),
+            JobType::LoadFont(path) => crate::assets::load_font_async(path, state.unwrap()),
+            JobType::LoadSound(path) => crate::assets::load_sound_async(path, state.unwrap()),
         }
 
         notify.send(0).log("Unable to notify main loop about finished job");
     }
-}
-
-pub enum JobType {
-    /// Loads an image synchronously
-    /// Should only be called through the asset system
-    /// We copy the AssetPathType from the slot so 
-    /// the locks on the slot are shorter
-    LoadImage((&'static str, RawDataPointer)),
 }

@@ -1,9 +1,9 @@
 
-use std::collections::{HashMap, LinkedList};
+use std::collections::LinkedList;
+use dashmap::DashMap;
 use std::cmp::Eq;
 use std::hash::Hash;
 use std::mem::MaybeUninit;
-use std::sync::Mutex;
 use std::collections::linked_list::IterMut;
 
 pub type PooledCacheIndex = (usize, usize);
@@ -38,26 +38,20 @@ impl<const C: usize, T: Sized> CachePool<C, T> {
     fn get_mut(&mut self, index: usize) -> Option<&mut T> { 
         self.data[index].as_mut()
     }
-    fn get(&self, index: usize) -> Option<&T> {
-        self.data[index].as_ref()
-    }
 }
 pub struct PooledCache<const C: usize, K: Eq + Hash, T> {
-    map: HashMap<K, PooledCacheIndex>,
+    map: DashMap<K, PooledCacheIndex>,
     data: LinkedList<CachePool<C, T>>,
-    lock: Mutex<()>,
 }
 impl<const C: usize, K: Eq + Hash, T> PooledCache<C, K, T> {
     pub fn new() -> PooledCache<C, K, T> {
         PooledCache { 
-            map: HashMap::new(),
+            map: DashMap::new(),
             data: LinkedList::new(),
-            lock: Mutex::new(()),
         }
     }
 
     pub fn get_mut(&mut self, file: &K) -> Option<&mut T> {
-        let _lock = self.lock.lock().unwrap();
         if let Some(i) = self.map.get_mut(file) {
             let pool = self.data.iter_mut().skip(i.0).next().unwrap();
             return pool.get_mut(i.1);
@@ -65,36 +59,16 @@ impl<const C: usize, K: Eq + Hash, T> PooledCache<C, K, T> {
         None
     }
 
-    pub fn get(&self, file: &K) -> Option<&T> {
-        let _lock = self.lock.lock().unwrap();
-        if let Some(i) = self.map.get(file) {
-            let pool = self.data.iter().skip(i.0).next().unwrap();
-            return pool.get(i.1);
-        }
-        None
-    }
-
-    pub fn get_index(&self, index: PooledCacheIndex) -> Option<&T> {
-        let _lock = self.lock.lock().unwrap();
-        let pool = self.data.iter().skip(index.0).next().unwrap();
-        pool.get(index.1)
-    }
     pub fn get_index_mut(&mut self, index: PooledCacheIndex) -> Option<&mut T> { 
-        let _lock = self.lock.lock().unwrap();
         let pool = self.data.iter_mut().skip(index.0).next().unwrap();
         pool.get_mut(index.1)
     }
 
-    pub fn contains(&self, file: &K) -> bool {
-        self.map.get(file).is_some()
-    }
-
-    pub fn iter(&mut self) -> PooledCacheIter<C, T> {
-        PooledCacheIter::new(&mut self.data)
+    pub fn index_of(&self, file: &K) -> PooledCacheIndex {
+        self.map.get(file).unwrap().clone()
     }
 
     pub fn insert(&mut self, file: K, data: T) {
-        let _lock = self.lock.lock().unwrap();
         for (i, pool) in self.data.iter_mut().enumerate() {
             if pool.count < C {
                 let index = pool.add(data);
@@ -102,9 +76,14 @@ impl<const C: usize, K: Eq + Hash, T> PooledCache<C, K, T> {
                 return;
             }
         }
+
         let pool = CachePool::new(data);
         self.data.push_back(pool);
         self.map.insert(file, (self.data.len() - 1, 0));
+    }
+
+    pub fn indices(&mut self) -> PooledCacheIter<C, T> {
+        PooledCacheIter::new(&mut self.data)
     }
 }
 
