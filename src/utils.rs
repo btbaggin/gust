@@ -1,3 +1,5 @@
+use std::mem::MaybeUninit;
+
 #[macro_export]
 macro_rules! unsafe_read_type {
     ($ty:ty, $file:expr, $index:expr) => {{
@@ -11,10 +13,15 @@ macro_rules! unsafe_read_type {
         }
         $index += config_size;
         config
-            // let size = std::mem::size_of::<$ty>();
-            // let value = <$ty>::from_le_bytes($file[$index..($index + size)].try_into().unwrap());
-            // $index += size;
-            // value
         }};
 }
 pub use unsafe_read_type;
+
+pub fn init_optional_array_to_blank<T, const C: usize>() -> [Option<T>; C] {
+    let mut data: [MaybeUninit<Option<T>>; C] = unsafe { MaybeUninit::uninit().assume_init() };
+        for p in &mut data[..] {
+            p.write(None);
+        }
+
+    unsafe { MaybeUninit::array_assume_init(data) }
+}

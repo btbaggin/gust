@@ -106,7 +106,7 @@ struct MixContext<'a> {
 
 trait AudioDevice {
     fn get_mixer(&mut self) -> MixContext;
-    fn run(&mut self);
+    fn run(&mut self, notice: std::sync::mpsc::Receiver<()>);
 
     fn mix(&mut self) {
         let context = self.get_mixer();
@@ -184,16 +184,19 @@ trait AudioDevice {
     }
 }
 
-pub fn start_audio_engine() {
+pub fn start_audio_engine() -> std::sync::mpsc::Sender<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
     std::thread::spawn(move || {
         #[cfg(target_os = "windows")]
         {
             let mut device = win32::DirectSoundDevice::new(SAMPLE_RATE).unwrap();
-            device.run()
+            device.run(rx)
         }
         #[cfg(not(any(target_os = "windows")))]
         panic!("Sound not implemented on platform");
     });
+    tx
 }
 
 pub fn request_sound<'a>(queue: &mut JobQueue, sound: Sounds) -> Option<&'a mut Sound> {
