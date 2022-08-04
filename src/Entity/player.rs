@@ -1,4 +1,3 @@
-use crate::entity::Entity;
 use speedy2d::dimen::Vector2;
 use speedy2d::color::Color;
 use crate::graphics::Graphics;
