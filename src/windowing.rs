@@ -9,7 +9,7 @@ use std::time::Instant;
 
 pub(crate) trait WindowHandler {
     fn on_start(&mut self) { }
-    fn on_update(&mut self, _: f32) -> bool;
+    fn on_update(&mut self, delta_time: f32, input: &crate::input::Input) -> bool;
     fn on_render(&mut self, graphics: &mut Graphics2D, delta_time: f32, size: PhysicalSize<u32>);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
@@ -65,7 +65,7 @@ fn create_window(event_loop: &EventLoop<()>,
     (context, GameWindow { renderer, size })
 }
 
-pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, handler: H) -> ! 
+pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: crate::input::Input, mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = EventLoop::new();
 
@@ -77,9 +77,8 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, handl
         .with_visible(true);
     let (context, mut window) = create_window(&el, builder);
 
-    let mut handler = handler;
-
-    let mut last_time = Instant::now();
+         let mut last_time = Instant::now();
+    let mut mouse_position = crate::V2::new(0., 0.);
 
     handler.on_start();
     
@@ -106,6 +105,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, handl
                     handler.on_focus(focused)
                 },
                 WindowEvent::ReceivedCharacter(_) => { }
+                WindowEvent::CursorMoved { position, .. } => { mouse_position = crate::V2::new(position.x as f32, position.y as f32); }
                 _ => {}
             },
 
@@ -114,7 +114,9 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, handl
                 let delta_time = (now - last_time).as_millis() as f32 / 1000.;
                 last_time = now;
 
-                if !handler.on_update(delta_time) {
+                crate::input::gather(&mut input, mouse_position);
+
+                if !handler.on_update(delta_time, &input) {
                     *control_flow = ControlFlow::Exit;
                     handler.on_stop();
                 }
@@ -127,8 +129,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, handl
 
                 // TODO skip on frame end if game is running slow
                 handler.on_frame_end();
-            }
-
+            },
             _ => {}
         }
     });

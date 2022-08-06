@@ -35,7 +35,7 @@ pub enum SettingValue {
     Color(Color),
 }
 
-macro_rules! stringy_enum {
+macro_rules! settings_enum {
     (pub enum $name:ident {
         $($value:ident($display:expr) = $default:expr,)+
     }) => {
@@ -61,8 +61,13 @@ macro_rules! stringy_enum {
     };
 }
 
-stringy_enum! {
+settings_enum! {
     pub enum SettingNames {
+        ActionLeft("action_left") = SettingValue::String(String::from("Left")),
+        ActionRight("action_right") = SettingValue::String(String::from("Right")),
+        ActionUp("action_up") = SettingValue::String(String::from("Up")),
+        ActionDown("action_down") = SettingValue::String(String::from("Down")),
+        
         AssetCacheSizeMb("asset_cache_size_mb") = SettingValue::I32(32),
     }
 }

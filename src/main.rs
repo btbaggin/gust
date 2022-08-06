@@ -1,11 +1,13 @@
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(let_chains)]
 
+pub type V2 = speedy2d::dimen::Vector2<f32>;
+pub type V2U = speedy2d::dimen::Vector2<u32>;
+
 //use speedy2d::Window;
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
-use speedy2d::window::{WindowHelper, KeyScancode, VirtualKeyCode};
-use speedy2d::{Graphics2D, Window};
+use speedy2d::Graphics2D;
 use std::sync::Arc;
 use std::cell::RefCell;
 use logger::{LogEntry, PanicLogEntry};
@@ -19,6 +21,7 @@ mod graphics;
 mod utils;
 mod entity;
 mod windowing;
+mod input;
 pub use graphics::{Graphics, Texture, Label};
 
 
@@ -32,6 +35,7 @@ struct GameState<'a> {
 
 impl windowing::WindowHandler for GameState<'_> {
     fn on_start(&mut self) {
+
         let player = entity::player::Player::new();
         self.entities.create_tagged(Box::new(player), entity::EntityTag::Player);
 
@@ -57,61 +61,20 @@ impl windowing::WindowHandler for GameState<'_> {
         player.draw(&mut graphics);
     }
 
-    fn on_update(&mut self, delta_time: f32) -> bool {
+    fn on_update(&mut self, delta_time: f32, input: &input::Input) -> bool {
+        let player = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player).unwrap();
+        if input.action_down(&input::Actions::Left) { player.translate(V2::new(-100. * delta_time, 0.)); }
+        if input.action_down(&input::Actions::Right) { player.translate(V2::new(100. * delta_time, 0.)); }
+        if input.action_down(&input::Actions::Up) { player.translate(V2::new(0., -100. * delta_time)); }
+        if input.action_down(&input::Actions::Down) { player.translate(V2::new(0., 100. * delta_time)); }
         true
     }
 
     fn on_frame_end(&mut self) {
         assets::clear_old_cache(&self.settings);
+        self.entities.clear_entities();
     }
-    // fn on_key_down(&mut self, _helper: &mut WindowHelper<()>, virtual_key_code: Option<VirtualKeyCode>, _scancode: KeyScancode) {
-    //     let lock = self.queue.lock().log_and_panic();
-    //     let mut queue = lock.borrow_mut();
-    //     match virtual_key_code {
-    //         Some(VirtualKeyCode::A) => {
-    //         },
-    //         Some(VirtualKeyCode::Space) => {
-    //             if let Some(handle) = &mut self.sound {
-    //                 match handle.status() {
-    //                     assets::SoundStatus::Playing => handle.set_status(assets::SoundStatus::Paused),
-    //                     assets::SoundStatus::Paused => handle.set_status(assets::SoundStatus::Playing),
-    //                     _ => {}
-    //                 }
-    //             }
-    //         },
-    //         Some(VirtualKeyCode::Tab) => {
-    //             if let Some(handle) = &mut self.sound {
-    //                 handle.set_status(assets::SoundStatus::Stopped);
-    //             }
-    //         },
-    //         Some(VirtualKeyCode::B) => {
-    //             
-    //         },
-    //         Some(VirtualKeyCode::Left) => {
-    //             if let Some(p) = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player) {
-    //                 p.translate(speedy2d::dimen::Vector2::new(-1., 0.));
-    //             }
-    //         },
-    //         Some(VirtualKeyCode::Right) => {
-    //             if let Some(p) = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player) {
-    //                 p.translate(speedy2d::dimen::Vector2::new(1., 0.));
-    //             }
-    //         },
-    //         Some(VirtualKeyCode::Up) => {
-    //             if let Some(p) = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player) {
-    //                 p.translate(speedy2d::dimen::Vector2::new(0., -1.));
-    //             }
-    //         },
-    //         Some(VirtualKeyCode::Down) => {
-    //             if let Some(p) = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player) {
-    //                 p.translate(speedy2d::dimen::Vector2::new(0., 1.));
-    //             }
-    //         }
-    //         _ => {}
-    //     }
-    // }
 
-   // If desired, on_mouse_move(), on_key_down(), etc...
     fn on_stop(&mut self) {
         self.audio.send(()).log("Failed to send shutdown message to audio thread");
     }
@@ -125,13 +88,16 @@ fn main() {
     let (queue, _) = job_system::start_job_system();
     let q = Arc::new(std::sync::Mutex::new(RefCell::new(queue)));
 
-    let settings = match settings::load_settings("./settings.txt") {
+    let mut settings = match settings::load_settings("./settings.txt") {
         Ok(settings) => settings,
         Err(_) => settings::SettingsFile::default()
     };
+    let mut input = input::Input::new();
+    crate::input::load_input_settings(&mut input, &mut settings);
 
     let audio = assets::start_audio_engine();
-    windowing::create_game_window("gust", false, GameState {
+    windowing::create_game_window("gust", false, input,
+    GameState {
         queue: q, 
         settings, 
         sound: None,

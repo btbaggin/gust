@@ -9,6 +9,7 @@ crate::create_entity! {
 }
 impl Player {
     pub fn new() -> Player {
+        //TODO this is dumb
         Player { position: Vector2::new(0., 0.) }
     }
     pub fn draw(&self, graphics: &mut Graphics) {

@@ -15,6 +15,7 @@ pub type EntityHandle = GenerationalIndex;
 pub struct EntityManager {
     entities: GenerationalArray<MAX_ENTITIES, Box<dyn Entity>>,
     tags: HashMap<EntityTag, EntityHandle>,
+    old_entities: Vec<EntityHandle>,
 }
 
 pub trait Entity {
@@ -31,12 +32,8 @@ macro_rules! create_entity {
             $($field: $ty,)+
         }
         impl crate::entity::Entity for $name {
-            fn as_any(&self) -> &dyn std::any::Any {
-                self
-            }
-            fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-                self
-            }
+            fn as_any(&self) -> &dyn std::any::Any { self }
+            fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
         }
     };
 }
@@ -46,6 +43,7 @@ impl EntityManager {
         EntityManager { 
             entities: GenerationalArray::new(),
             tags: HashMap::new(),
+            old_entities: vec!(),
         }
     }
     pub fn create(&mut self, entity: Box<dyn Entity>) -> EntityHandle {
@@ -56,8 +54,14 @@ impl EntityManager {
         self.tags.insert(tag, handle.clone());
         handle
     }
-    pub fn destory(&mut self, handle: &EntityHandle) {
-        self.entities.remove(handle);
+    pub fn destory(&mut self, handle: EntityHandle) {
+        self.old_entities.push(handle);
+    }
+    pub(super) fn clear_entities(&mut self) {
+        for e in &self.old_entities {
+            self.entities.remove(e);
+        }
+        self.old_entities.clear();
     }
     pub fn get<'a>(&self, handle: &'a EntityHandle) -> Option<&Box<dyn Entity>> {
         self.entities.get(handle)

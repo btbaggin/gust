@@ -3,7 +3,6 @@ use std::collections::LinkedList;
 use dashmap::DashMap;
 use std::cmp::Eq;
 use std::hash::Hash;
-use std::mem::MaybeUninit;
 use std::collections::linked_list::IterMut;
 
 pub type PooledCacheIndex = (usize, usize);
@@ -14,17 +13,12 @@ struct CachePool<const C: usize, T: Sized> {
 }
 impl<const C: usize, T: Sized> CachePool<C, T> {
     fn new(item: T) -> CachePool<C, T> {
-        let mut data: [MaybeUninit<Option<T>>; C] = unsafe { MaybeUninit::uninit().assume_init() };
-        
-        for p in &mut data[..] {
-            p.write(None);
-        }
-        let elem = &mut data[0];
-        *elem = MaybeUninit::new(Some(item));
+        let mut data = crate::utils::init_optional_array_to_blank::<T, C>();
+        data[0] = Some(item);
 
         CachePool { 
             count: 1, 
-            data: unsafe { MaybeUninit::array_assume_init(data) },
+            data,
         }
     }
 
