@@ -10,7 +10,7 @@ use super::{AssetData, ASSET_STATE_LOADED, AssetTypes, get_slot_mut, get_slot_in
 #[cfg(target_os = "windows")]
 mod win32;
 
-// Audio engine taken from: https://github.com/FyroxEngine/Fyrox/tree/master/fyrox-resource
+// Audio engine taken from: https://github.com/FyroxEngine/Fyrox/tree/master/fyrox-sound
 pub const SAMPLE_RATE: u32 = 44100;
 
 #[derive(Debug)]
@@ -39,14 +39,13 @@ impl SoundList {
         }
     }
     fn push(&mut self, sound: SoundHandle) -> &mut SoundHandle {
-        let inserted_at;
-        if let Some(index) = self.free_indices.pop_front() {
-            inserted_at = index;
+        let inserted_at = if let Some(index) = self.free_indices.pop_front() {
             self.sounds[index] = Some(sound);
+            index
         } else {
-            inserted_at = self.sounds.len();
             self.sounds.push(Some(sound));
-        }
+            self.sounds.len() - 1
+        };
         self.sounds[inserted_at].as_mut().unwrap()
     }
 

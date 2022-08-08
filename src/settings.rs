@@ -67,6 +67,7 @@ settings_enum! {
         ActionRight("action_right") = SettingValue::String(String::from("Right")),
         ActionUp("action_up") = SettingValue::String(String::from("Up")),
         ActionDown("action_down") = SettingValue::String(String::from("Down")),
+        ActionQuit("action_quit") = SettingValue::String(String::from("Escape")),
         
         AssetCacheSizeMb("asset_cache_size_mb") = SettingValue::I32(32),
     }

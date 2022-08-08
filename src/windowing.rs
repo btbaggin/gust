@@ -1,5 +1,4 @@
 use speedy2d::*;
-use speedy2d::dimen::Vector2;
 use glutin::dpi::PhysicalSize;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
@@ -98,7 +97,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                     window.size = PhysicalSize::new(physical_size.width, physical_size.height);
 
                     context.resize(physical_size);
-                    window.renderer.set_viewport_size_pixels(Vector2::new(physical_size.width, physical_size.height));
+                    window.renderer.set_viewport_size_pixels(crate::V2U::new(physical_size.width, physical_size.height));
                     handler.on_resize(physical_size.width, physical_size.height);
                 },
                 WindowEvent::Focused(focused) => {

@@ -4,7 +4,6 @@
 pub type V2 = speedy2d::dimen::Vector2<f32>;
 pub type V2U = speedy2d::dimen::Vector2<u32>;
 
-//use speedy2d::Window;
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
 use speedy2d::Graphics2D;
@@ -22,29 +21,31 @@ mod utils;
 mod entity;
 mod windowing;
 mod input;
+mod gust;
 pub use graphics::{Graphics, Texture, Label};
+use crate::gust::EntityTag;
 
 
 struct GameState<'a> {
     queue: job_system::ThreadSafeJobQueue,
     settings: settings::SettingsFile,
     sound: Option<&'a mut assets::SoundHandle>,
-    entities: entity::EntityManager,
+    entities: entity::EntityManager<EntityTag>,
     audio: std::sync::mpsc::Sender<()>,
+    is_playing: bool,
 }
 
 impl windowing::WindowHandler for GameState<'_> {
     fn on_start(&mut self) {
-
-        let player = entity::player::Player::new();
-        self.entities.create_tagged(Box::new(player), entity::EntityTag::Player);
+        let player = gust::Player::new();
+        self.entities.create_tagged(player, EntityTag::Player);
 
         let lock = self.queue.lock().log_and_panic();
         let mut queue = lock.borrow_mut();
         self.sound = Some(assets::Sound::play(&mut queue, assets::Sounds::Piano));
     }
 
-    fn on_render(&mut self, graphics: &mut Graphics2D, delta_time: f32, size: PhysicalSize<u32>) {
+    fn on_render(&mut self, graphics: &mut Graphics2D, _delta_time: f32, _size: PhysicalSize<u32>) {
         let mut graphics = Graphics { graphics, queue: self.queue.clone() };
 
         settings::update_settings(&mut self.settings).log("Unable to load new settings");
@@ -57,17 +58,19 @@ impl windowing::WindowHandler for GameState<'_> {
         let mut label = Label::new(String::from("testing"), assets::Fonts::Regular, 64.);
         label.render(&mut graphics, (200., 200.), speedy2d::color::Color::RED);
 
-        let player = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player).unwrap();
+        let player = crate::find_entity_mut!(self.entities, EntityTag::Player, gust::Player).unwrap();
         player.draw(&mut graphics);
     }
 
     fn on_update(&mut self, delta_time: f32, input: &input::Input) -> bool {
-        let player = crate::find_entity_mut!(self.entities, entity::EntityTag::Player, entity::player::Player).unwrap();
+        let player = crate::find_entity_mut!(self.entities, EntityTag::Player, gust::Player).unwrap();
         if input.action_down(&input::Actions::Left) { player.translate(V2::new(-100. * delta_time, 0.)); }
         if input.action_down(&input::Actions::Right) { player.translate(V2::new(100. * delta_time, 0.)); }
         if input.action_down(&input::Actions::Up) { player.translate(V2::new(0., -100. * delta_time)); }
         if input.action_down(&input::Actions::Down) { player.translate(V2::new(0., 100. * delta_time)); }
-        true
+
+        if input.action_pressed(&input::Actions::Quit) { self.is_playing = false; }
+        self.is_playing
     }
 
     fn on_frame_end(&mut self) {
@@ -103,5 +106,6 @@ fn main() {
         sound: None,
         entities: entity::EntityManager::new(),
         audio,
+        is_playing: true,
     })
 }

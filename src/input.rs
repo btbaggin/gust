@@ -139,7 +139,8 @@ pub enum Actions {
     Up,
     Down,
     Left,
-    Right
+    Right,
+    Quit,
 }
 
 pub struct Input {
@@ -148,6 +149,7 @@ pub struct Input {
     map: HashMap<Actions, Key>,
     mouse_position: V2,
 }
+#[allow(dead_code)]
 impl Input {
     pub fn new() -> Input {
         Input {
@@ -203,4 +205,5 @@ pub fn load_input_settings(input: &mut Input, settings: &SettingsFile) {
     add_action_from_settings(input, settings, SettingNames::ActionRight, Actions::Right);
     add_action_from_settings(input, settings, SettingNames::ActionUp, Actions::Up);
     add_action_from_settings(input, settings, SettingNames::ActionDown, Actions::Down);
+    add_action_from_settings(input, settings, SettingNames::ActionQuit, Actions::Quit);
 }

@@ -16,10 +16,7 @@ impl<const C: usize, T: Sized> CachePool<C, T> {
         let mut data = crate::utils::init_optional_array_to_blank::<T, C>();
         data[0] = Some(item);
 
-        CachePool { 
-            count: 1, 
-            data,
-        }
+        CachePool { count: 1, data }
     }
 
     fn add(&mut self, item: T) -> usize {

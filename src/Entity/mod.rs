@@ -1,20 +1,15 @@
 use std::collections::HashMap;
+use std::hash::Hash;
 
 mod generational_array;
 pub use generational_array::{GenerationalArray, GenerationalIndex};
-pub mod player;
 
 const MAX_ENTITIES: usize = 512;
 
-#[derive(Eq, Hash, PartialEq)]
-pub enum EntityTag {
-    Player,
-}
-
 pub type EntityHandle = GenerationalIndex;
-pub struct EntityManager {
+pub struct EntityManager<T: Hash + Eq> {
     entities: GenerationalArray<MAX_ENTITIES, Box<dyn Entity>>,
-    tags: HashMap<EntityTag, EntityHandle>,
+    tags: HashMap<T, EntityHandle>,
     old_entities: Vec<EntityHandle>,
 }
 
@@ -38,23 +33,23 @@ macro_rules! create_entity {
     };
 }
 
-impl EntityManager {
-    pub fn new() -> EntityManager {
+impl<T: Hash + Eq> EntityManager<T> {
+    pub fn new() -> EntityManager<T> {
         EntityManager { 
             entities: GenerationalArray::new(),
             tags: HashMap::new(),
             old_entities: vec!(),
         }
     }
-    pub fn create(&mut self, entity: Box<dyn Entity>) -> EntityHandle {
-        self.entities.push(entity)
+    pub fn create(&mut self, entity: impl Entity + 'static) -> EntityHandle {
+        self.entities.push(Box::new(entity))
     }
-    pub fn create_tagged(&mut self, entity: Box<dyn Entity>, tag: EntityTag) -> EntityHandle {
-        let handle = self.entities.push(entity);
+    pub fn create_tagged(&mut self, entity: impl Entity + 'static, tag: T) -> EntityHandle {
+        let handle = self.entities.push(Box::new(entity));
         self.tags.insert(tag, handle.clone());
         handle
     }
-    pub fn destory(&mut self, handle: EntityHandle) {
+    pub fn destroy(&mut self, handle: EntityHandle) {
         self.old_entities.push(handle);
     }
     pub(super) fn clear_entities(&mut self) {
@@ -69,13 +64,13 @@ impl EntityManager {
     pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Box<dyn Entity>> {
         self.entities.get_mut(handle)
     }
-    pub fn find<'a>(&self, tag: &'a EntityTag) -> Option<&Box<dyn Entity>> {
+    pub fn find<'a>(&self, tag: &'a T) -> Option<&Box<dyn Entity>> {
         if let Some(handle) = self.tags.get(tag) {
             return self.entities.get(handle);
         }
         None
     }
-    pub fn find_mut<'a>(&mut self, tag: &'a EntityTag) -> Option<&mut Box<dyn Entity>> {
+    pub fn find_mut<'a>(&mut self, tag: &'a T) -> Option<&mut Box<dyn Entity>> {
         if let Some(handle) = self.tags.get(tag) {
             return self.entities.get_mut(handle);
         }
