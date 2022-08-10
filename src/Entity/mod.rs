@@ -2,39 +2,41 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 mod generational_array;
+mod scene;
 pub use generational_array::{GenerationalArray, GenerationalIndex};
+pub use self::scene::{SceneManager, SceneHandle};
 
 const MAX_ENTITIES: usize = 512;
 
+#[derive(Eq, Hash, PartialEq)]
+pub enum EntityTag {
+    Player,
+}
+
 pub type EntityHandle = GenerationalIndex;
-pub struct EntityManager<T: Hash + Eq> {
+pub struct EntityManager {
     entities: GenerationalArray<MAX_ENTITIES, Box<dyn Entity>>,
-    tags: HashMap<T, EntityHandle>,
+    tags: HashMap<EntityTag, EntityHandle>,
     old_entities: Vec<EntityHandle>,
 }
 
 pub trait Entity {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+    fn update(&mut self, delta_time: f32, input: &crate::input::Input);
+    fn render(&self, graphics: &mut crate::Graphics);
 }
 
 #[macro_export]
-macro_rules! create_entity {
-    (pub struct $name:ident {
-        $($field:ident: $ty:ty,)+
-    }) => {
-        pub struct $name {
-            $($field: $ty,)+
-        }
-        impl crate::entity::Entity for $name {
-            fn as_any(&self) -> &dyn std::any::Any { self }
-            fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
-        }
+macro_rules! entity {
+    () => {
+        fn as_any(&self) -> &dyn std::any::Any { self }
+        fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
     };
 }
 
-impl<T: Hash + Eq> EntityManager<T> {
-    pub fn new() -> EntityManager<T> {
+impl EntityManager {
+    pub fn new() -> EntityManager {
         EntityManager { 
             entities: GenerationalArray::new(),
             tags: HashMap::new(),
@@ -44,7 +46,7 @@ impl<T: Hash + Eq> EntityManager<T> {
     pub fn create(&mut self, entity: impl Entity + 'static) -> EntityHandle {
         self.entities.push(Box::new(entity))
     }
-    pub fn create_tagged(&mut self, entity: impl Entity + 'static, tag: T) -> EntityHandle {
+    pub fn create_tagged(&mut self, entity: impl Entity + 'static, tag: EntityTag) -> EntityHandle {
         let handle = self.entities.push(Box::new(entity));
         self.tags.insert(tag, handle.clone());
         handle
@@ -52,7 +54,7 @@ impl<T: Hash + Eq> EntityManager<T> {
     pub fn destroy(&mut self, handle: EntityHandle) {
         self.old_entities.push(handle);
     }
-    pub(super) fn clear_entities(&mut self) {
+    pub(super) fn dispose_entities(&mut self) {
         for e in &self.old_entities {
             self.entities.remove(e);
         }
@@ -64,13 +66,13 @@ impl<T: Hash + Eq> EntityManager<T> {
     pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Box<dyn Entity>> {
         self.entities.get_mut(handle)
     }
-    pub fn find<'a>(&self, tag: &'a T) -> Option<&Box<dyn Entity>> {
+    pub fn find<'a>(&self, tag: &'a EntityTag) -> Option<&Box<dyn Entity>> {
         if let Some(handle) = self.tags.get(tag) {
             return self.entities.get(handle);
         }
         None
     }
-    pub fn find_mut<'a>(&mut self, tag: &'a T) -> Option<&mut Box<dyn Entity>> {
+    pub fn find_mut<'a>(&mut self, tag: &'a EntityTag) -> Option<&mut Box<dyn Entity>> {
         if let Some(handle) = self.tags.get(tag) {
             return self.entities.get_mut(handle);
         }

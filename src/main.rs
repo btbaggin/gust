@@ -8,6 +8,7 @@ use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
 use speedy2d::Graphics2D;
 use std::sync::Arc;
+use std::rc::Rc;
 use std::cell::RefCell;
 use logger::{LogEntry, PanicLogEntry};
 
@@ -22,60 +23,67 @@ mod entity;
 mod windowing;
 mod input;
 mod gust;
-pub use graphics::{Graphics, Texture, Label};
-use crate::gust::EntityTag;
+pub use graphics::{Graphics, Label};
+use crate::entity::EntityTag;
+use assets::{SoundHandle, Texture, Sound, Sounds, Images, Fonts};
+use input::Actions;
+
+/*
+ * Message bus
+ * Scenes
+ * Handle for entities
+ */
 
 
 struct GameState<'a> {
     queue: job_system::ThreadSafeJobQueue,
     settings: settings::SettingsFile,
     sound: Option<&'a mut assets::SoundHandle>,
-    entities: entity::EntityManager<EntityTag>,
+    scene_manager: entity::SceneManager,
     audio: std::sync::mpsc::Sender<()>,
     is_playing: bool,
 }
 
 impl windowing::WindowHandler for GameState<'_> {
     fn on_start(&mut self) {
+        // We want player to persist between levels so 
         let player = gust::Player::new();
-        self.entities.create_tagged(player, EntityTag::Player);
+        let player = self.scene_manager.create_tagged(player, EntityTag::Player);
+
+        let main = gust::MainLevel::new();
+        self.scene_manager.load(Box::new(main));
+        self.scene_manager.add_handle_to_scene(player);
 
         let lock = self.queue.lock().log_and_panic();
         let mut queue = lock.borrow_mut();
-        self.sound = Some(assets::Sound::play(&mut queue, assets::Sounds::Piano));
+        self.sound = Some(Sound::play(&mut queue, Sounds::Piano));
     }
 
     fn on_render(&mut self, graphics: &mut Graphics2D, _delta_time: f32, _size: PhysicalSize<u32>) {
         let mut graphics = Graphics { graphics, queue: self.queue.clone() };
 
-        settings::update_settings(&mut self.settings).log("Unable to load new settings");
-
-        graphics.clear_screen(Color::from_rgb(0.8, 0.9, 1.0));
+        graphics.clear_screen(Color::BLACK);
         graphics.draw_circle((100.0, 100.0), 75.0, Color::BLUE);
 
-        Texture::render(&mut graphics, assets::Images::Testing, speedy2d::shape::Rectangle::from_tuples((0., 0.), (100., 100.)));
+        self.scene_manager.render(&mut graphics);
 
-        let mut label = Label::new(String::from("testing"), assets::Fonts::Regular, 64.);
+        Texture::render(&mut graphics, Images::Testing, speedy2d::shape::Rectangle::from_tuples((0., 0.), (100., 100.)));
+
+        let mut label = Label::new(String::from("testing"), Fonts::Regular, 64.);
         label.render(&mut graphics, (200., 200.), speedy2d::color::Color::RED);
-
-        let player = crate::find_entity_mut!(self.entities, EntityTag::Player, gust::Player).unwrap();
-        player.draw(&mut graphics);
     }
 
     fn on_update(&mut self, delta_time: f32, input: &input::Input) -> bool {
-        let player = crate::find_entity_mut!(self.entities, EntityTag::Player, gust::Player).unwrap();
-        if input.action_down(&input::Actions::Left) { player.translate(V2::new(-100. * delta_time, 0.)); }
-        if input.action_down(&input::Actions::Right) { player.translate(V2::new(100. * delta_time, 0.)); }
-        if input.action_down(&input::Actions::Up) { player.translate(V2::new(0., -100. * delta_time)); }
-        if input.action_down(&input::Actions::Down) { player.translate(V2::new(0., 100. * delta_time)); }
+        settings::update_settings(&mut self.settings).log("Unable to load new settings");
+        self.scene_manager.update(delta_time, input);        
 
-        if input.action_pressed(&input::Actions::Quit) { self.is_playing = false; }
+        if input.action_pressed(&Actions::Quit) { self.is_playing = false; }
         self.is_playing
     }
 
     fn on_frame_end(&mut self) {
         assets::clear_old_cache(&self.settings);
-        self.entities.clear_entities();
+        self.scene_manager.dispose_entities();
     }
 
     fn on_stop(&mut self) {
@@ -99,12 +107,13 @@ fn main() {
     crate::input::load_input_settings(&mut input, &mut settings);
 
     let audio = assets::start_audio_engine();
+
     windowing::create_game_window("gust", false, input,
     GameState {
         queue: q, 
         settings, 
         sound: None,
-        entities: entity::EntityManager::new(),
+        scene_manager: entity::SceneManager::new(),
         audio,
         is_playing: true,
     })

@@ -2,7 +2,9 @@ use std::mem::MaybeUninit;
 
 mod timer;
 mod tween;
-pub use timer::{FrameTimer, RealTimer};  
+mod animation;
+pub use timer::{FrameTimer, RealTimer};
+pub use animation::{Animation};
 
 #[macro_export]
 macro_rules! unsafe_read_type {

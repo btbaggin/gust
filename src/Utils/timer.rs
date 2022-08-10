@@ -7,7 +7,7 @@ impl FrameTimer {
         FrameTimer { current_frame: frames, frames }
     }
 
-    fn update(&mut self, delta_time: f32) -> bool {
+    pub fn update(&mut self, delta_time: f32) -> bool {
         self.current_frame -= 1;
         if self.current_frame <= 0 {
             self.current_frame = self.frames;    
@@ -26,7 +26,7 @@ impl RealTimer {
         RealTimer { current_time: time, time }
     }
 
-    fn update(&mut self, delta_time: f32) -> bool {
+    pub fn update(&mut self, delta_time: f32) -> bool {
         self.current_time -= delta_time;
         if self.current_time <= 0. {
             self.current_time = self.time + self.current_time;

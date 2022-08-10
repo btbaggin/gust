@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use crate::logger::PanicLogEntry;
 use speedy2d::font::*;
-use crate::graphics::Texture;
 use std::time::Instant;
 use crate::pooled_cache::{PooledCache, PooledCacheIndex};
 use crate::job_system::{JobType, JobQueue};
@@ -9,7 +8,7 @@ use crate::job_system::{JobType, JobQueue};
 mod image;
 mod font;
 mod sound;
-pub use self::image::{request_asset_image, request_image, load_image_async};
+pub use self::image::{Texture, request_asset_image, request_image, load_image_async};
 pub use self::font::{request_font, load_font_async};
 pub use self::sound::{start_audio_engine, Sound, SoundHandle, SoundStatus, load_sound_async};
 use self::sound::{SOUNDS, SoundList};
