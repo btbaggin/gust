@@ -3,8 +3,10 @@ use std::mem::MaybeUninit;
 mod timer;
 mod tween;
 mod animation;
+mod math;
 pub use timer::{FrameTimer, RealTimer};
 pub use animation::{Animation};
+pub use self::math::{scale_v2, cross_v2, cross, from_v2, sized_rect};
 
 #[macro_export]
 macro_rules! unsafe_read_type {

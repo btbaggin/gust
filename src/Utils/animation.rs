@@ -1,8 +1,9 @@
-use crate::{Graphics, V2, assets::Texture};
+use crate::{Graphics, V2, assets::Images};
 use speedy2d::shape::Rectangle;
+use crate::utils::sized_rect;
 
 pub struct Animation {
-    image: crate::assets::Images,
+    image: Images,
     frames: u32,
     frame_timer: crate::utils::RealTimer,
     current_frame: u32,
@@ -10,7 +11,7 @@ pub struct Animation {
     stride: u32,
 }
 impl Animation {
-    pub fn new(image: crate::assets::Images, frames: u32, frame_size: V2, frame_duration: f32, stride: u32) -> Animation {
+    pub fn new(image: Images, frames: u32, frame_size: V2, frame_duration: f32, stride: u32) -> Animation {
         Animation { 
             image,
             frames,
@@ -32,7 +33,7 @@ impl Animation {
             let x = (self.current_frame % self.stride) as f32;
             let y = (self.current_frame % self.stride) as f32;
             let top_left = V2::new(x * self.frame_size.x, y * self.frame_size.y);
-            let frame = Rectangle::new(top_left, top_left + self.frame_size);
+            let frame = sized_rect(top_left, self.frame_size);
             graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, frame, &image);
         }
     }

@@ -40,7 +40,7 @@ impl<const C: usize, T: Sized> GenerationalArray<C, T> {
         None
     }
 
-    pub fn push(&mut self, value: T) -> GenerationalIndex {
+    pub fn push(&mut self, value: T) -> (GenerationalIndex, &mut T) {
         let index = match self.free.pop_front() {
             Some(i) => i,
             None => {
@@ -51,7 +51,9 @@ impl<const C: usize, T: Sized> GenerationalArray<C, T> {
 
         self.data[index] = Some(value);
 
-        GenerationalIndex { index, version: self.version[index] }
+        let data = self.data[index].as_mut().unwrap();
+        let index = GenerationalIndex { index, version: self.version[index] };
+        (index, data)
     }
 
     pub fn remove(&mut self, index: &GenerationalIndex) -> bool {

@@ -5,15 +5,18 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{PossiblyCurrent, ContextWrapper};
 use std::time::Instant;
+use crate::entity::{SceneBehavior, SceneManager};
 
 pub(crate) trait WindowHandler {
-    fn on_start(&mut self) { }
-    fn on_update(&mut self, delta_time: f32, input: &crate::input::Input) -> bool;
-    fn on_render(&mut self, graphics: &mut Graphics2D, delta_time: f32, size: PhysicalSize<u32>);
+    // fn on_start(&mut self) { }
+    fn on_update(&mut self, delta_time: f32, input: &crate::input::Input, scene_manager: &mut SceneManager) -> bool;
+    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &SceneManager, delta_time: f32, size: PhysicalSize<u32>);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
     fn on_focus(&mut self, _: bool) { }
     fn on_stop(&mut self) { }
+
+    fn next_scene(&mut self) -> Option<Box<dyn SceneBehavior>>;
 }
 
 struct GameWindow {
@@ -64,7 +67,8 @@ fn create_window(event_loop: &EventLoop<()>,
     (context, GameWindow { renderer, size })
 }
 
-pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: crate::input::Input, mut handler: H) -> ! 
+pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: crate::input::Input, 
+                                    queue: crate::job_system::ThreadSafeJobQueue, mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = EventLoop::new();
 
@@ -76,10 +80,11 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
         .with_visible(true);
     let (context, mut window) = create_window(&el, builder);
 
-         let mut last_time = Instant::now();
+    let mut last_time = Instant::now();
     let mut mouse_position = crate::V2::new(0., 0.);
 
-    handler.on_start();
+    let mut scene_manager = crate::entity::SceneManager::new();
+    crate::physics::initialize_physics();
     
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -97,7 +102,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                     window.size = PhysicalSize::new(physical_size.width, physical_size.height);
 
                     context.resize(physical_size);
-                    window.renderer.set_viewport_size_pixels(crate::V2U::new(physical_size.width, physical_size.height));
+                    window.renderer.set_viewport_size_pixels(speedy2d::dimen::Vector2::new(physical_size.width, physical_size.height));
                     handler.on_resize(physical_size.width, physical_size.height);
                 },
                 WindowEvent::Focused(focused) => {
@@ -113,21 +118,28 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                 let delta_time = (now - last_time).as_millis() as f32 / 1000.;
                 last_time = now;
 
+                if let Some(scene) = handler.next_scene() {
+                    scene_manager.load(scene, queue.clone());
+                }
+
                 crate::input::gather(&mut input, mouse_position);
 
-                if !handler.on_update(delta_time, &input) {
+                if !handler.on_update(delta_time, &input, &mut scene_manager) {
                     *control_flow = ControlFlow::Exit;
                     handler.on_stop();
                 }
 
+                unsafe { crate::physics::step_physics(0.2); } //TODO don't hardcode time, need to calculate from target fps
+
                 let size = PhysicalSize::new(window.size.width, window.size.height);
                 window.renderer.draw_frame(|graphics| {
-                    handler.on_render(graphics, delta_time, size);
+                    handler.on_render(graphics, &scene_manager, delta_time, size);
                 });
                 context.swap_buffers().unwrap();
 
                 // TODO skip on frame end if game is running slow
                 handler.on_frame_end();
+                scene_manager.dispose_entities();
             },
             _ => {}
         }

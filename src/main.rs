@@ -1,16 +1,16 @@
 #![feature(maybe_uninit_array_assume_init)]
 #![feature(let_chains)]
 
-pub type V2 = speedy2d::dimen::Vector2<f32>;
-pub type V2U = speedy2d::dimen::Vector2<u32>;
+pub type V2 = cgmath::Vector2<f32>;
+pub type V2U = cgmath::Vector2<u32>;
 
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
 use speedy2d::Graphics2D;
 use std::sync::Arc;
-use std::rc::Rc;
 use std::cell::RefCell;
-use logger::{LogEntry, PanicLogEntry};
+use logger::LogEntry;
+use crate::entity::{SceneBehavior, SceneManager};
 
 mod assets;
 mod job_system;
@@ -23,15 +23,15 @@ mod entity;
 mod windowing;
 mod input;
 mod gust;
+mod physics;
 pub use graphics::{Graphics, Label};
-use crate::entity::EntityTag;
-use assets::{SoundHandle, Texture, Sound, Sounds, Images, Fonts};
+use assets::{Texture, Images, Fonts};
 use input::Actions;
 
 /*
  * Message bus
- * Scenes
  * Handle for entities
+ * Custom V2 class
  */
 
 
@@ -39,33 +39,21 @@ struct GameState<'a> {
     queue: job_system::ThreadSafeJobQueue,
     settings: settings::SettingsFile,
     sound: Option<&'a mut assets::SoundHandle>,
-    scene_manager: entity::SceneManager,
     audio: std::sync::mpsc::Sender<()>,
+    scene: Option<Box<dyn SceneBehavior>>,
     is_playing: bool,
 }
 
 impl windowing::WindowHandler for GameState<'_> {
-    fn on_start(&mut self) {
-        // We want player to persist between levels so 
-        let player = gust::Player::new();
-        let player = self.scene_manager.create_tagged(player, EntityTag::Player);
-
-        let main = gust::MainLevel::new();
-        self.scene_manager.load(Box::new(main));
-        self.scene_manager.add_handle_to_scene(player);
-
-        let lock = self.queue.lock().log_and_panic();
-        let mut queue = lock.borrow_mut();
-        self.sound = Some(Sound::play(&mut queue, Sounds::Piano));
+    fn next_scene(&mut self) -> Option<Box<dyn SceneBehavior>> {
+        std::mem::replace(&mut self.scene, None)
     }
 
-    fn on_render(&mut self, graphics: &mut Graphics2D, _delta_time: f32, _size: PhysicalSize<u32>) {
+    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &SceneManager, _delta_time: f32, _size: PhysicalSize<u32>) {
         let mut graphics = Graphics { graphics, queue: self.queue.clone() };
-
         graphics.clear_screen(Color::BLACK);
-        graphics.draw_circle((100.0, 100.0), 75.0, Color::BLUE);
 
-        self.scene_manager.render(&mut graphics);
+        scene_manager.render(&mut graphics);
 
         Texture::render(&mut graphics, Images::Testing, speedy2d::shape::Rectangle::from_tuples((0., 0.), (100., 100.)));
 
@@ -73,9 +61,9 @@ impl windowing::WindowHandler for GameState<'_> {
         label.render(&mut graphics, (200., 200.), speedy2d::color::Color::RED);
     }
 
-    fn on_update(&mut self, delta_time: f32, input: &input::Input) -> bool {
+    fn on_update(&mut self, delta_time: f32, input: &input::Input, scene_manager: &mut SceneManager) -> bool {
         settings::update_settings(&mut self.settings).log("Unable to load new settings");
-        self.scene_manager.update(delta_time, input);        
+        scene_manager.update(delta_time, input);        
 
         if input.action_pressed(&Actions::Quit) { self.is_playing = false; }
         self.is_playing
@@ -83,7 +71,6 @@ impl windowing::WindowHandler for GameState<'_> {
 
     fn on_frame_end(&mut self) {
         assets::clear_old_cache(&self.settings);
-        self.scene_manager.dispose_entities();
     }
 
     fn on_stop(&mut self) {
@@ -108,13 +95,13 @@ fn main() {
 
     let audio = assets::start_audio_engine();
 
-    windowing::create_game_window("gust", false, input,
-    GameState {
-        queue: q, 
+    let state = GameState {
+        queue: q.clone(), 
         settings, 
         sound: None,
-        scene_manager: entity::SceneManager::new(),
         audio,
+        scene: Some(Box::new(gust::MainLevel::new())),
         is_playing: true,
-    })
+    };
+    windowing::create_game_window("gust", false, input, q.clone(), state)
 }

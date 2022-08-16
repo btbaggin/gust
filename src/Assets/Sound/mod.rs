@@ -61,11 +61,13 @@ pub struct Sound {
 }
 
 impl Sound {
-    pub fn play(queue: &mut JobQueue, sound: Sounds) -> &'static mut SoundHandle {
+    pub fn play(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> &'static mut SoundHandle {
         // Queue the sound up for loading if it isn't loaded already
         // Since we keep an index to the asset slot in the SoundHandle
         // when it loaded the sound will automatically start playing
-        request_sound(queue, sound);
+        let lock = queue.lock().log_and_panic();
+        let mut queue = lock.borrow_mut();
+        request_sound(&mut queue, sound);
         
         let index = get_slot_index(AssetTypes::Sound(sound));
         let handle = SoundHandle {
