@@ -54,7 +54,7 @@ fn create_window(event_loop: &EventLoop<()>,
                  builder: WindowBuilder) -> (ContextWrapper<PossiblyCurrent, glutin::window::Window>, GameWindow) {
 
     use crate::logger::PanicLogEntry;
-    let context = create_best_context(&builder, &event_loop).log_and_panic();
+    let context = create_best_context(&builder, event_loop).log_and_panic();
     let context = unsafe { context.make_current().unwrap() };
 
     let size = context.window().inner_size();
@@ -76,7 +76,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
     let fullscreen = if fullscreen { Some(Fullscreen::Borderless(monitor)) } else { None };
     let builder = WindowBuilder::new()
         .with_title(title)  
-        .with_fullscreen(fullscreen.clone())
+        .with_fullscreen(fullscreen)
         .with_visible(true);
     let (context, mut window) = create_window(&el, builder);
 

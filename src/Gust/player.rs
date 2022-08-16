@@ -3,7 +3,7 @@ use crate::input::{Input, Actions};
 use crate::V2;
 use crate::utils::from_v2;
 use crate::entity::{Entity, EntityHelper};
-use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
+use crate::physics::{PhysicsMaterial, Circle, Polygon, CollisionShape};
 
 pub struct Player {
 }
@@ -16,10 +16,11 @@ impl crate::entity::EntityBehavior for Player {
     crate::entity!();
 
     fn initialize(&self, e: &mut EntityHelper) {
-        let shape = CollisionShape::Circle(Circle::new(10.));
-        e.set_position(V2::new(10., 10.))
+        //let shape = CollisionShape::Circle(Circle::new(10.));
+        let shape = CollisionShape::Polygon(Polygon::rectangle(50., 50., V2::new(0., 0.)));
+        e.set_position(V2::new(200., 200.))
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
-         .set_scale(V2::new(10., 10.))
+         .set_scale(V2::new(50., 50.))
          .set_rotation(0.);
     }
 
@@ -29,8 +30,11 @@ impl crate::entity::EntityBehavior for Player {
         if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
         if input.action_down(&Actions::Down) { e.alter_position(V2::new(0., 100. * delta_time)); }
     }
+    
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         //TODO add wrappers for graphics
-        graphics.draw_circle(from_v2(e.position), e.scale.x, Color::RED);
+        crate::assets::Texture::render(graphics, crate::assets::Images::Testing, crate::utils::sized_rect(e.position, e.scale));
+
+//        graphics.draw_circle(from_v2(e.position), e.scale.x, Color::RED);
     }
 }

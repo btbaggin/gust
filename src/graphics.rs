@@ -11,12 +11,12 @@ pub struct Graphics<'a> {
 impl<'a> Deref for Graphics<'a> {
     type Target = Graphics2D;
     fn deref(&self) -> &Self::Target {
-        &self.graphics
+        self.graphics
     }
 }
 impl<'a> DerefMut for Graphics<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.graphics
+        self.graphics
     }
 }
 
@@ -45,10 +45,10 @@ impl Label {
 
     pub fn render(&mut self, graphics: &mut Graphics, position: (f32, f32), color: Color) {
         if let Some(font) = request_font(graphics, self.font) {
-            if let None = self.layout {
+            if self.layout.is_none() {
                 self.layout = Some(font.layout_text(&self.text, self.size, TextOptions::new()));
             }
-            graphics.draw_text(position, color, &self.layout.as_ref().unwrap());
+            graphics.draw_text(position, color, self.layout.as_ref().unwrap());
         }
     }
 }

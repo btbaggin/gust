@@ -74,7 +74,7 @@ impl RigidBody {
     }
 
     pub fn apply_impulse(&mut self, impulse: V2, contact: V2) {
-        self.velocity = self.velocity + crate::utils::scale_v2(impulse, self.inverse_mass);
+        self.velocity += crate::utils::scale_v2(impulse, self.inverse_mass);
         self.angular_velocity += self.inverse_inertia * crate::utils::cross_v2(contact, impulse);
     }
 }

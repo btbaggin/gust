@@ -151,7 +151,7 @@ impl AudioDevice for DirectSoundDevice {
     }
 
     fn run(&mut self, notice: std::sync::mpsc::Receiver<()>) {
-        while let Err(_) = notice.try_recv() {
+        while notice.try_recv().is_err() {
             self.mix();
 
             // Wait and send.

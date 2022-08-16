@@ -39,7 +39,7 @@ impl<'a> EntityHelper<'a> {
         self
     }
     pub fn alter_position(&mut self, delta: V2) -> &mut EntityHelper<'a> {
-        *self.position = *self.position + delta;
+        *self.position += delta;
         self
     }
     pub fn set_scale(&mut self, scale: V2) -> &mut EntityHelper<'a> {
@@ -99,7 +99,6 @@ pub trait EntityBehavior {
 
     fn update(&mut self, e: &mut EntityHelper, delta_time: f32, input: &crate::input::Input);
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics);
-    //TODO some sort of create passing in entity helper?
 }
 
 #[macro_export]

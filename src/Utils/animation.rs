@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::{Graphics, V2, assets::Images};
 use speedy2d::shape::Rectangle;
 use crate::utils::sized_rect;
@@ -34,7 +36,7 @@ impl Animation {
             let y = (self.current_frame % self.stride) as f32;
             let top_left = V2::new(x * self.frame_size.x, y * self.frame_size.y);
             let frame = sized_rect(top_left, self.frame_size);
-            graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, frame, &image);
+            graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, frame, image);
         }
     }
 }

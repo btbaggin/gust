@@ -24,11 +24,11 @@ impl SceneManager {
         self.scenes.back_mut().expect("Scene manager must have a scene loaded")
     }
 
-    pub fn load(&mut self, mut handle: Box<dyn SceneBehavior>, queue: crate::job_system::ThreadSafeJobQueue) {
-        let entities = handle.load(&mut self.manager, queue);
+    pub fn load(&mut self, mut behavior: Box<dyn SceneBehavior>, queue: crate::job_system::ThreadSafeJobQueue) {
+        let entities = behavior.load(&mut self.manager, queue);
 
         let mut scene = Scene { 
-            handle,
+            behavior,
             entities,
         };
         self.scenes.push_back(scene);
@@ -36,7 +36,7 @@ impl SceneManager {
 
     pub fn unload(&mut self) {
         if let Some(mut scene) = self.scenes.pop_back() {
-            scene.handle.unload(&mut self.manager);
+            scene.behavior.unload(&mut self.manager);
             for e in scene.entities {
                 self.manager.destroy(e);
             }
@@ -45,14 +45,14 @@ impl SceneManager {
 
     pub fn update(&mut self, delta_time: f32, input: &crate::input::Input) {
         for e in &self.entities {
-            let entity = self.manager.get_mut(e).unwrap(); //TODO is this safe?
+            let entity = self.manager.get_mut(e).unwrap();
             let p = entity as *mut crate::entity::Entity as u64;
             entity.update(delta_time, input);
         }
 
         for scene in &self.scenes {
             for e in &scene.entities {
-                let entity = self.manager.get_mut(e).unwrap(); //TODO is this safe?
+                let entity = self.manager.get_mut(e).unwrap();
                 entity.update(delta_time, input);
             }
         }
@@ -60,13 +60,13 @@ impl SceneManager {
 
     pub fn render(&self, graphics: &mut crate::Graphics) {
         for e in &self.entities {
-            let entity = self.manager.get(e).unwrap(); //TODO is this safe?
+            let entity = self.manager.get(e).unwrap();
             entity.behavior.render(entity, graphics);
         }
 
         for scene in &self.scenes {
             for e in &scene.entities {
-                let entity = self.manager.get(e).unwrap(); //TODO is this safe?
+                let entity = self.manager.get(e).unwrap();
                 entity.behavior.render(entity, graphics);
             }
         }

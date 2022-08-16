@@ -22,7 +22,7 @@ impl SceneBehavior for MainLevel {
         Sound::play(&queue, Sounds::Piano);
         results
     }
-    fn unload(&mut self, manager: &mut EntityManager) {}
-    fn update(&mut self, delta_time: f32) {}
-    fn render(&self, graphics: &mut crate::Graphics) {}
+    fn unload(&mut self, _manager: &mut EntityManager) {}
+    fn update(&mut self, _delta_time: f32) {}
+    fn render(&self, _graphics: &mut crate::Graphics) {}
 }

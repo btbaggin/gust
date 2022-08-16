@@ -2,7 +2,7 @@ use crate::Graphics;
 use super::{EntityHandle, EntityManager, SceneManager};
 
 pub struct Scene {
-    pub(super) handle: Box<dyn SceneBehavior>,
+    pub(super) behavior: Box<dyn SceneBehavior>,
     pub(super) entities: Vec<EntityHandle>,
 }
 pub trait SceneBehavior {

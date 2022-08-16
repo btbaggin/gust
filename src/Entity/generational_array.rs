@@ -66,6 +66,6 @@ impl<const C: usize, T: Sized> GenerationalArray<C, T> {
             return true;
         }
 
-        return false;
+        false
     }
 }

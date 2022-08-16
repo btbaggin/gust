@@ -22,7 +22,7 @@ impl Log for Logger {
                 Level::Error => format!("{:?}", backtrace::Backtrace::new()),
                 _ => String::from(""),
             };
-            let message = format!("{}: {} [{}]: {} {:?}\n", record.metadata().target(), level.to_string(), time_string, record.args(), trace);
+            let message = format!("{}: {} [{}]: {} {:?}\n", record.metadata().target(), level, time_string, record.args(), trace);
 
             file.write_all(message.as_bytes()).unwrap();
         }

@@ -123,7 +123,7 @@ impl Manifold {
         const PERCENT: f32 = 0.4;
         let scaled_normal = scale_v2(self.normal, PERCENT);
         let correction =  scale_v2(scaled_normal, f32::max(self.penetration - K_SLOP, 0.) / (body_a.inverse_mass + body_b.inverse_mass));
-        entity_a.position = entity_a.position - scale_v2(correction, body_a.inverse_mass);
-        entity_b.position = entity_b.position + scale_v2(correction, body_b.inverse_mass);
+        entity_a.position -= scale_v2(correction, body_a.inverse_mass);
+        entity_b.position += scale_v2(correction, body_b.inverse_mass);
     }
 }

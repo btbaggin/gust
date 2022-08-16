@@ -90,7 +90,7 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
     {
         let lock = graphics.queue.lock().log_and_panic();
         let mut queue = lock.borrow_mut();
-        if super::send_job_if_unloaded(&mut queue, slot, JobType::LoadImage(slot.path.clone())) {
+        if super::send_job_if_unloaded(&mut queue, slot, JobType::LoadImage(slot.path)) {
             return None;
         }
     }
@@ -98,7 +98,7 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
     if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
         if let AssetData::Raw(data) = &slot.data && 
            let SlotTag::Dimensions(dimen) = slot.tag {
-            let image = graphics.create_image_from_raw_pixels(ImageDataType::RGBA, ImageSmoothingMode::Linear, dimen, &data).log_and_panic();
+            let image = graphics.create_image_from_raw_pixels(ImageDataType::RGBA, ImageSmoothingMode::Linear, dimen, data).log_and_panic();
             slot.data = AssetData::Image(Texture::new(Rc::new(image), bounds));
         }
     }
@@ -106,7 +106,7 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
     match &slot.data {
         AssetData::Image(image) => {
             slot.last_request = Instant::now();
-            return Some(image)
+            Some(image)
         },
         AssetData::None => None,
         _ => panic!("Something is seriously wrong..."),
@@ -118,7 +118,7 @@ pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
 
     let data = std::fs::read(&path).log_and_panic();
 
-    let mut reader = image::io::Reader::new(std::io::Cursor::new(data.clone()));
+    let mut reader = image::io::Reader::new(std::io::Cursor::new(data));
     reader = reader.with_guessed_format().log_and_panic();
 
     match reader.decode() {

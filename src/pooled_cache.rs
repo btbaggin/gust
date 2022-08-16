@@ -44,19 +44,19 @@ impl<const C: usize, K: Eq + Hash, T> PooledCache<C, K, T> {
 
     pub fn get_mut(&mut self, file: &K) -> Option<&mut T> {
         if let Some(i) = self.map.get_mut(file) {
-            let pool = self.data.iter_mut().skip(i.0).next().unwrap();
+            let pool = self.data.iter_mut().nth(i.0).unwrap();
             return pool.get_mut(i.1);
         }
         None
     }
 
     pub fn get_index_mut(&mut self, index: PooledCacheIndex) -> Option<&mut T> { 
-        let pool = self.data.iter_mut().skip(index.0).next().unwrap();
+        let pool = self.data.iter_mut().nth(index.0).unwrap();
         pool.get_mut(index.1)
     }
 
     pub fn index_of(&self, file: &K) -> PooledCacheIndex {
-        self.map.get(file).unwrap().clone()
+        *self.map.get(file).unwrap()
     }
 
     pub fn insert(&mut self, file: K, data: T) {
@@ -106,10 +106,10 @@ impl<'a, const C: usize, T> Iterator for PooledCacheIter<'a, C, T> {
 
         let index = (self.pool_index - 1, self.index);
         if let Some(p) = &mut self.curr {
-            if let Some(_) = p.data[self.index] {
+            if p.data[self.index].is_some() {
                 return Some(index);
             }
         }
-        return None;
+        None
     }
 }

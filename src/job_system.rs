@@ -18,7 +18,7 @@ impl RawDataPointer {
         }
     }
     pub fn get_inner<'a, T>(&self) -> &'a mut T {
-        unsafe { &mut *(self.0 as *mut &mut T) }
+        unsafe { *(self.0 as *mut &mut T) }
     }
 }
 

@@ -29,7 +29,7 @@ impl EntityManager {
         let (handle, data) = self.entities.push(entity);
         data.initialize();
 
-        self.tags.insert(tag, handle.clone());
+        self.tags.insert(tag, handle);
         handle
     }
     pub fn destroy(&mut self, handle: EntityHandle) {

@@ -12,13 +12,13 @@ pub fn request_font<'a>(graphics: &mut Graphics, font: Fonts) -> Option<&'a Font
 
     let lock = graphics.queue.lock().log_and_panic();
     let mut queue = lock.borrow_mut();
-    if super::send_job_if_unloaded(&mut queue, slot, JobType::LoadFont(slot.path.clone())) {
+    if super::send_job_if_unloaded(&mut queue, slot, JobType::LoadFont(slot.path)) {
         return None;
     }
 
     if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
         if let AssetData::Raw(data) = &slot.data {
-            let font = speedy2d::font::Font::new(&data).log_and_panic();
+            let font = speedy2d::font::Font::new(data).log_and_panic();
             slot.data = AssetData::Font(font);
         }
     }
@@ -26,7 +26,7 @@ pub fn request_font<'a>(graphics: &mut Graphics, font: Fonts) -> Option<&'a Font
     match &slot.data {
         AssetData::Font(font) => {
             slot.last_request = Instant::now();
-            return Some(font);
+            Some(font)
         },
         AssetData::None => None,
         _ => panic!("Something is seriously wrong..."),

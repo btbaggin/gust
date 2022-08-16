@@ -181,7 +181,7 @@ trait AudioDevice {
             }
             handle.samples_played = index;
         }
-        return false;
+        false
     }
 }
 
@@ -203,7 +203,7 @@ pub fn start_audio_engine() -> std::sync::mpsc::Sender<()> {
 pub fn request_sound<'a>(queue: &mut JobQueue, sound: Sounds) -> Option<&'a mut Sound> {
     let slot = get_slot_mut(AssetTypes::Sound(sound));
     
-    if super::send_job_if_unloaded(queue, slot, JobType::LoadSound(slot.path.clone())) {
+    if super::send_job_if_unloaded(queue, slot, JobType::LoadSound(slot.path)) {
         return None;
     }
     

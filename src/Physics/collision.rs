@@ -5,7 +5,7 @@ use cgmath::{InnerSpace, Matrix, MetricSpace};
 
 pub fn circle_to_circle(manifold: &mut Manifold, entity_a: &Entity, entity_b: &Entity, a: &Circle, b: &Circle) {
 	// Calculate translational vector, which is normal
-	let normal = entity_a.position - entity_b.position;
+	let normal = entity_b.position - entity_a.position;
 
 	let dist_sqr = normal.magnitude2();
 	let radius = a.radius() + b.radius();
@@ -45,7 +45,6 @@ pub fn circle_to_polygon(manifold: &mut Manifold, entity_a: &Entity, entity_b: &
 	let mut face_normal = 0;
 	for i in 0..vertices.len() {
 		let s = normals[i].dot(center - vertices[i]);
-
 		if s > a.radius() { return; }
 
 		if s > separation {
@@ -139,7 +138,7 @@ fn find_axis_least_penetration(position_a: V2, position_b: V2, a: &Polygon, b: &
 		}
 	}
 
-	return (best_distance, best_index);
+	(best_distance, best_index)
 }
 
 fn find_incident_face(ref_poly: &Polygon, inc_poly: &Polygon, inc_poly_position: V2, index: usize) -> [V2; 2] {
@@ -147,7 +146,6 @@ fn find_incident_face(ref_poly: &Polygon, inc_poly: &Polygon, inc_poly_position:
 
 	// Calculate normal in incident's frame of reference
 	let reference_normal = ref_poly.u * reference_normal; // To world space
-	//TODO &inc_poly.u.transpose();
 	let reference_normal =  inc_poly.u * reference_normal; // To incident's model space
 
 	// Find most anti-normal face on incident polygon
@@ -200,7 +198,7 @@ fn clip(normal: V2, c: f32, face: [V2; 2]) -> (usize, [V2; 2]) {
 	}
 
 	assert!(sp != 3);
-	return (sp, out);
+	(sp, out)
 }
 
 fn bias_greater_than(a: f32, b: f32) -> bool {
