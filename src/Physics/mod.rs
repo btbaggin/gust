@@ -58,11 +58,8 @@ unsafe fn integrate_velocity(body: &mut RigidBody, delta_time: f32) {
 
     let entity = &mut *body.entity;
 	entity.position += body.velocity * delta_time;
-	body.orient += body.angular_velocity * delta_time;
-    match &mut body.shape {
-        CollisionShape::Circle(c) => c.set_orient(body.orient),
-        CollisionShape::Polygon(p) => p.set_orient(body.orient),
-    }
+	entity.rotation += body.angular_velocity * delta_time;
+    body.shape.set_orient(entity.rotation);
 	integrate_forces(body, delta_time);
 }
 

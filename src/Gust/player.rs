@@ -25,10 +25,14 @@ impl crate::entity::EntityBehavior for Player {
     }
 
     fn update(&mut self, e: &mut EntityHelper, delta_time: f32, input: &Input) {
-        if input.action_down(&Actions::Left) { e.alter_position(V2::new(-100. * delta_time, 0.)); }
-        if input.action_down(&Actions::Right) { e.alter_position(V2::new(100. * delta_time, 0.)); }
-        if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
-        if input.action_down(&Actions::Down) { e.alter_position(V2::new(0., 100. * delta_time)); }
+        // if input.action_down(&Actions::Left) { e.alter_position(V2::new(-100. * delta_time, 0.)); }
+        // if input.action_down(&Actions::Right) { e.alter_position(V2::new(100. * delta_time, 0.)); }
+        // if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
+        // if input.action_down(&Actions::Down) { e.alter_position(V2::new(0., 100. * delta_time)); }
+        if input.action_down(&Actions::Left) { e.apply_force(V2::new(-100., 0.)); }
+        if input.action_down(&Actions::Right) { e.apply_force(V2::new(100., 0.)); }
+        if input.action_down(&Actions::Up) { e.apply_force(V2::new(0., -100.)); }
+        if input.action_down(&Actions::Down) { e.apply_force(V2::new(0., 100.)); }
     }
     
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {

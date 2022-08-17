@@ -12,6 +12,14 @@ pub enum CollisionShape {
     Circle(Circle),
     Polygon(Polygon),
 }
+impl CollisionShape {
+    pub fn set_orient(&mut self, rotation: f32) {
+        match self {
+            CollisionShape::Circle(c) => c.set_orient(rotation),
+            CollisionShape::Polygon(p) => p.set_orient(rotation),
+        }
+    }
+}
 
 pub struct Circle {
     radius: f32,

@@ -42,12 +42,21 @@ impl<'a> EntityHelper<'a> {
         *self.position += delta;
         self
     }
+    pub fn apply_force(&mut self, force: V2) -> &mut EntityHelper<'a> {
+        if let Some(handle) = *self.rigid_body {
+            RigidBody::get(handle).apply_force(force);
+        }
+        self
+    }
     pub fn set_scale(&mut self, scale: V2) -> &mut EntityHelper<'a> {
         *self.scale = scale;
         self
     }
     pub fn set_rotation(&mut self, rotation: f32) -> &mut EntityHelper<'a> {
         *self.rotation = rotation;
+        if let Some(handle) = *self.rigid_body {
+            RigidBody::get(handle).rotate(rotation);
+        }
         self
     }
 }

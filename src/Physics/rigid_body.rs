@@ -24,7 +24,6 @@ pub struct RigidBody {
 
     pub(super) angular_velocity: f32,
     pub(super) torque: f32,
-    pub(super) orient: f32, //radians
 
     pub(super) force: V2,
 
@@ -56,7 +55,6 @@ impl RigidBody {
             velocity: V2::new(0., 0.),
             angular_velocity: 0.,
             torque: 0.,
-            orient: 0.,
             force: V2::new(0., 0.),
             inertia,
             inverse_inertia: if inertia == 0. { 0. } else { 1. / inertia },
@@ -76,6 +74,19 @@ impl RigidBody {
     pub fn apply_impulse(&mut self, impulse: V2, contact: V2) {
         self.velocity += crate::utils::scale_v2(impulse, self.inverse_mass);
         self.angular_velocity += self.inverse_inertia * crate::utils::cross_v2(contact, impulse);
+    }
+
+    pub fn rotate(&mut self, rotation: f32) {
+        self.shape.set_orient(rotation)
+    }
+
+    pub fn apply_force(&mut self, force: V2) {
+        self.force += force;
+    }
+
+    pub fn get(handle: RigidBodyHandle) -> &'static mut RigidBody {
+        let physics = unsafe { crate::physics::PHYSICS.as_mut().unwrap() };
+        &mut physics.bodies[handle]
     }
 }
 
