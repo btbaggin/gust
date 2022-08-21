@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use crate::V2;
-use crate::physics::collision_shape::Shape;
 
 mod rigid_body;
 mod collision_shape;
@@ -12,46 +11,53 @@ pub use rigid_body::{PhysicsMaterial, RigidBody, RigidBodyHandle};
 use manifold::{Manifold, ManifoldHandle};
 
 static mut PHYSICS: Option<Physics> = None;
-
-pub const GRAVITY: V2 = V2::new(0., 0.);
 pub const PHYSICS_ITERATIONS: u8 = 10;
 
 pub struct Physics {
-    bodies: Vec<RigidBody>
+    bodies: Vec<RigidBody>,
+    gravity: V2,
 }
 
+pub fn cross_v2(a: V2, b: V2) -> f32 {
+	a.x * b.y - a.y * b.x
+}
+
+fn cross(a: f32, b: V2) -> V2 {
+    V2::new(-a * b.y, a * b.x)
+}
 
 pub fn initialize_physics() {
-    unsafe { PHYSICS = Some(Physics { bodies: vec!() }) };
+    unsafe { PHYSICS = Some(Physics { 
+        bodies: vec!(),
+        gravity: V2::new(0., 0.),
+    }) };
 }
 
 unsafe fn solve_manifold(body_a: &RigidBody, body_b: &RigidBody) -> Manifold {
     let mut m = Manifold::new();
     let entity_a = &*body_a.entity;
     let entity_b = &*body_b.entity;
-    let p = body_a.entity as u64;
-    let p2 = body_b.entity as u64;
+
     match (&body_a.shape, &body_b.shape) {
         (CollisionShape::Circle(a), CollisionShape::Circle(b)) => collision::circle_to_circle(&mut m, entity_a, entity_b, a, b),
         (CollisionShape::Polygon(b), CollisionShape::Circle(a)) => collision::circle_to_polygon(&mut m, entity_a, entity_b, a, b),
         (CollisionShape::Circle(a), CollisionShape::Polygon(b)) => collision::circle_to_polygon(&mut m, entity_b, entity_a, a, b),
         (CollisionShape::Polygon(a), CollisionShape::Polygon(b)) => collision::polygon_to_polygon(&mut m, entity_a, entity_b, a, b),
-        _ => panic!("Unknown collision mesh combination"),
     }
     m
 }
 
 // see http://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
-fn integrate_forces(body: &mut RigidBody, delta_time: f32) {
+fn integrate_forces(body: &mut RigidBody, gravity: V2, delta_time: f32) {
 	if body.inverse_mass == 0. {
 		return;
     }
 
-	body.velocity += (body.force * body.inverse_mass + GRAVITY) * (delta_time / 2.);
+	body.velocity += (body.force * body.inverse_mass + gravity) * (delta_time / 2.);
 	body.angular_velocity += body.torque * body.inverse_inertia * (delta_time / 2.);
 }
 
-unsafe fn integrate_velocity(body: &mut RigidBody, delta_time: f32) {
+unsafe fn integrate_velocity(body: &mut RigidBody, gravity: V2, delta_time: f32) {
 	if body.inverse_mass == 0. {
 		return;
     }
@@ -60,7 +66,7 @@ unsafe fn integrate_velocity(body: &mut RigidBody, delta_time: f32) {
 	entity.position += body.velocity * delta_time;
 	entity.rotation += body.angular_velocity * delta_time;
     body.shape.set_orient(entity.rotation);
-	integrate_forces(body, delta_time);
+	integrate_forces(body, gravity, delta_time);
 }
 
 pub unsafe fn step_physics(delta_time: f32) {
@@ -97,18 +103,18 @@ pub unsafe fn step_physics(delta_time: f32) {
 
 	// Integrate forces
 	for b in bodies.iter_mut() {
-		integrate_forces(b, delta_time);
+		integrate_forces(b, physics.gravity, delta_time);
     }
 
 	// Initialize collision
 	for c in &mut contacts {
         let a = &bodies[c.body_a];
         let b = &bodies[c.body_b];
-		c.manifold.initialize(delta_time, a, b);
+		c.manifold.initialize(delta_time, physics.gravity, a, b);
     }
 
 	// Solve collisions
-	for i in 0..PHYSICS_ITERATIONS {
+	for _ in 0..PHYSICS_ITERATIONS {
 		for c in &contacts {
             let a = &mut *(bodies.get_unchecked_mut(c.body_a) as *mut _);
             let b = &mut *(bodies.get_unchecked_mut(c.body_b) as *mut _);
@@ -118,7 +124,7 @@ pub unsafe fn step_physics(delta_time: f32) {
 
 	// Integrate velocities
     for b in bodies.iter_mut() {
-        integrate_velocity(b, delta_time);
+        integrate_velocity(b, physics.gravity, delta_time);
     }
 
 	// Correct positions

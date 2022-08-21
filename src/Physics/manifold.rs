@@ -1,6 +1,5 @@
 use crate::V2;
-use crate::physics::RigidBody;
-use crate::utils::{cross, cross_v2, scale_v2};
+use crate::physics::{RigidBody, cross};
 use cgmath::InnerSpace;
 
 pub struct ManifoldHandle {
@@ -32,7 +31,7 @@ impl Manifold {
         }
     }
 
-    pub unsafe fn initialize(&mut self, delta_time: f32, body_a: &RigidBody, body_b: &RigidBody) {
+    pub unsafe fn initialize(&mut self, delta_time: f32, gravity: V2, body_a: &RigidBody, body_b: &RigidBody) {
         let entity_a = &*body_a.entity;
         let entity_b = &*body_b.entity;
 
@@ -54,7 +53,7 @@ impl Manifold {
             // Determine if we should perform a resting collision or not
             // The idea is if the only thing moving this object is gravity,
             // then the collision should be performed without any restitution
-            if rv.magnitude() < scale_v2(super::GRAVITY, delta_time).magnitude() + f32::EPSILON {
+            if rv.magnitude() < (gravity * delta_time).magnitude() + f32::EPSILON {
                 self.e = 0.;
             }
         }
@@ -79,8 +78,8 @@ impl Manifold {
             let contact_vel = rv.dot(self.normal);
             if contact_vel > 0. { return; }
 
-            let ra_cross_n = cross_v2(ra, self.normal);
-            let rb_cross_n = cross_v2(rb, self.normal);
+            let ra_cross_n = super::cross_v2(ra, self.normal);
+            let rb_cross_n = super::cross_v2(rb, self.normal);
             let inv_mass_sum = body_a.inverse_mass + body_b.inverse_mass + (ra_cross_n * ra_cross_n) *
                                body_a.inverse_inertia + (rb_cross_n * rb_cross_n) * body_b.inverse_inertia;
             
@@ -121,9 +120,9 @@ impl Manifold {
 
         const K_SLOP: f32 = 0.05;
         const PERCENT: f32 = 0.4;
-        let scaled_normal = scale_v2(self.normal, PERCENT);
-        let correction =  scale_v2(scaled_normal, f32::max(self.penetration - K_SLOP, 0.) / (body_a.inverse_mass + body_b.inverse_mass));
-        entity_a.position -= scale_v2(correction, body_a.inverse_mass);
-        entity_b.position += scale_v2(correction, body_b.inverse_mass);
+        let scaled_normal = self.normal * PERCENT;
+        let correction =  scaled_normal * f32::max(self.penetration - K_SLOP, 0.) / (body_a.inverse_mass + body_b.inverse_mass);
+        entity_a.position -= correction * body_a.inverse_mass;
+        entity_b.position += correction * body_b.inverse_mass;
     }
 }

@@ -7,6 +7,9 @@ use crate::job_system::{RawDataPointer, JobType, JobQueue};
 use crate::pooled_cache::PooledCacheIndex;
 use super::{AssetData, ASSET_STATE_LOADED, AssetTypes, get_slot_mut, get_slot_index, Sounds, ASSET_CACHE};
 
+mod sound_list;
+pub use sound_list::{SoundList, SOUNDS};
+
 #[cfg(target_os = "windows")]
 mod win32;
 
@@ -25,52 +28,20 @@ pub enum SoundStatus {
     Paused,
 }
 
-pub static mut SOUNDS: Option<SoundList> = None;
-
-pub struct SoundList {
-    sounds: Vec<Option<SoundHandle>>,
-    free_indices: VecDeque<usize>
-}
-impl SoundList {
-    pub fn new() -> SoundList {
-        SoundList {
-            sounds: Vec::with_capacity(64),
-            free_indices: VecDeque::with_capacity(32),
-        }
-    }
-    fn push(&mut self, sound: SoundHandle) -> &mut SoundHandle {
-        let inserted_at = if let Some(index) = self.free_indices.pop_front() {
-            self.sounds[index] = Some(sound);
-            index
-        } else {
-            self.sounds.push(Some(sound));
-            self.sounds.len() - 1
-        };
-        self.sounds[inserted_at].as_mut().unwrap()
-    }
-
-    fn remove(&mut self, index: usize) {
-        self.sounds[index] = None;
-        self.free_indices.push_back(index);
-    }
-
-}
-
 pub struct Sound {
     samples: Vec<f32>,
 }
-
 impl Sound {
-    pub fn play(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> &'static mut SoundHandle {
+    pub fn play(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> SoundHandle {
         // Queue the sound up for loading if it isn't loaded already
-        // Since we keep an index to the asset slot in the SoundHandle
+        // Since we keep an index to the asset slot in the PlayingSound
         // when it loaded the sound will automatically start playing
         let lock = queue.lock().log_and_panic();
         let mut queue = lock.borrow_mut();
         request_sound(&mut queue, sound);
         
         let index = get_slot_index(AssetTypes::Sound(sound));
-        let handle = SoundHandle {
+        let handle = PlayingSound {
             index: index,
             samples_played: 0,
             volume: 1.,
@@ -79,14 +50,27 @@ impl Sound {
         let sounds = unsafe { SOUNDS.as_mut().unwrap() };
         sounds.push(handle)
     }
+
+    pub fn get(handle: SoundHandle) -> Option<&'static PlayingSound> { 
+        let sounds = unsafe { SOUNDS.as_ref().unwrap() };
+        sounds.get(handle).as_ref()
+    }
+
+    pub fn get_mut(handle: SoundHandle) -> Option<&'static mut PlayingSound> {
+        let sounds = unsafe { SOUNDS.as_mut().unwrap() };
+        sounds.get_mut(handle).as_mut()
+    }
 }
-pub struct SoundHandle {
+//TODO sound handle
+pub type SoundHandle = usize;
+
+pub struct PlayingSound {
     index: PooledCacheIndex,
     samples_played: usize,
     volume: f32,
     status: SoundStatus
 }
-impl SoundHandle {
+impl PlayingSound {
     pub fn status(&self) -> SoundStatus { self.status }
     pub fn set_status(&mut self, status: SoundStatus) { self.status = status; }
     pub fn volume(&self) -> f32 { self.volume }
@@ -142,7 +126,7 @@ trait AudioDevice {
         let assets = unsafe { ASSET_CACHE.as_mut().unwrap() };
 
         let mut remove_indices = vec!();
-        for (i, sound) in sounds.sounds.iter_mut().enumerate() {
+        for (i, sound) in sounds.iter_mut().enumerate() {
             if let Some(handle) = sound {
                 match handle.status {
                     SoundStatus::Paused => continue,
@@ -165,7 +149,7 @@ trait AudioDevice {
         }
     }
 
-    fn set_samples(slot: &mut AssetSlot, handle: &mut SoundHandle, samples: &mut [(f32, f32)]) -> bool {
+    fn set_samples(slot: &mut AssetSlot, handle: &mut PlayingSound, samples: &mut [(f32, f32)]) -> bool {
         if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED &&
             let AssetData::Sound(sound_data) = &slot.data {
 

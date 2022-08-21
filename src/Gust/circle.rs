@@ -2,8 +2,9 @@ use speedy2d::color::Color;
 use crate::V2;
 use crate::input::Input;
 use crate::utils::from_v2;
-use crate::entity::{Entity, EntityHelper};
+use crate::entity::{Entity, EntityHelper, EntityManager};
 use crate::physics::{PhysicsMaterial, Polygon, CollisionShape};
+use crate::messages::{MessageHandler, Message};
 
 pub struct Circle { }
 impl Circle {
@@ -22,10 +23,14 @@ impl crate::entity::EntityBehavior for Circle {
          .set_scale(V2::new(75., 75.));
     }
 
-    fn update(&mut self, e: &mut EntityHelper, delta_time: f32, input: &Input) { }
+    fn update(&mut self, e: &mut EntityHelper, update_state: &mut crate::game_loop::UpdateState) { }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         //TODO add wrappers for graphics
        crate::assets::Texture::render(graphics, crate::assets::Images::Testing, crate::utils::sized_rect(e.position, e.scale));
         // graphics.draw_circle(from_v2(e.position + e.scale / 2.), e.scale.x, Color::RED);
     }
+}
+impl MessageHandler for Circle {
+    crate::set_address!(Circle);
+    fn process(&mut self, message: &Message) {}
 }

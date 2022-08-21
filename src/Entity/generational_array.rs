@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use crate::utils::init_optional_array_to_blank;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Eq, PartialEq, Hash)]
 pub struct GenerationalIndex {
     pub index: usize,
     version: u16,

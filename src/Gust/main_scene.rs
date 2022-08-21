@@ -1,7 +1,8 @@
-use crate::entity::{SceneBehavior, EntityTag, EntityHandle, EntityManager};
+use crate::entity::{SceneBehavior, EntityTag, EntityHandle, EntityManager, SceneLoad};
 use crate::gust::{Player, Circle};
 use crate::assets::{Sound, Sounds};
 use crate::job_system::ThreadSafeJobQueue;
+use crate::messages::{Message, MessageHandler};
 
 pub struct MainLevel { }
 impl MainLevel {
@@ -18,11 +19,15 @@ impl SceneBehavior for MainLevel {
 
         let circle = Circle::new();
         results.push(manager.create(circle));
-
-        Sound::play(&queue, Sounds::Piano);
         results
     }
     fn unload(&mut self, _manager: &mut EntityManager) {}
-    fn update(&mut self, _delta_time: f32) {}
+    fn update(&mut self, _state: &mut crate::game_loop::UpdateState) -> SceneLoad {
+        SceneLoad::None
+    }
     fn render(&self, _graphics: &mut crate::Graphics) {}
+}
+impl MessageHandler for MainLevel {
+    crate::set_address!(MainLevel);
+    fn process(&mut self, message: &Message) {}
 }

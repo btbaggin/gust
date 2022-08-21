@@ -3,6 +3,8 @@
 pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
 
+use game_loop::UpdateState;
+use job_system::ThreadSafeJobQueue;
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
 use speedy2d::Graphics2D;
@@ -19,51 +21,46 @@ mod settings;
 mod graphics;
 mod utils;
 mod entity;
-mod windowing;
+mod game_loop;
 mod input;
 mod gust;
 mod physics;
+mod messages;
 pub use graphics::{Graphics, Label};
-use assets::{Texture, Images, Fonts};
-use input::Actions;
+use assets::Fonts;
+use input::{Actions, Input};
 
-/*
+/* TODO
  * Message bus
- * Handle for entities
- * Custom V2 class
  */
 
 
 struct GameState {
     queue: job_system::ThreadSafeJobQueue,
     settings: settings::SettingsFile,
+    delta_time_scale: f32,
     audio: std::sync::mpsc::Sender<()>,
-    scene: Option<Box<dyn SceneBehavior>>,
     is_playing: bool,
 }
 
-impl windowing::WindowHandler for GameState {
-    fn next_scene(&mut self) -> Option<Box<dyn SceneBehavior>> {
-        std::mem::replace(&mut self.scene, None)
-    }
-
+impl game_loop::WindowHandler for GameState {
     fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &SceneManager, _delta_time: f32, _size: PhysicalSize<u32>) {
         let mut graphics = Graphics { graphics, queue: self.queue.clone() };
         graphics.clear_screen(Color::BLACK);
 
         scene_manager.render(&mut graphics);
-
-        //Texture::render(&mut graphics, Images::Testing, speedy2d::shape::Rectangle::from_tuples((0., 0.), (100., 100.)));
-
-        let mut label = Label::new(String::from("testing"), Fonts::Regular, 64.);
-        label.render(&mut graphics, (200., 200.), speedy2d::color::Color::RED);
     }
 
-    fn on_update(&mut self, delta_time: f32, input: &input::Input, scene_manager: &mut SceneManager) -> bool {
+    fn on_update(&mut self, state: &mut UpdateState, scene: &mut SceneManager) -> bool {
         settings::update_settings(&mut self.settings).log("Unable to load new settings");
-        scene_manager.update(delta_time, input);        
+        state.delta_time = state.delta_time * self.delta_time_scale;
+        
+        self.is_playing = scene.update(state);
 
-        if input.action_pressed(&Actions::Quit) { self.is_playing = false; }
+        if state.input.action_pressed(&Actions::Quit) { self.is_playing = false; }
+        if state.input.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
+        if state.input.action_pressed(&Actions::Faster) { self.delta_time_scale += 0.1; }
+        self.delta_time_scale = self.delta_time_scale.clamp(0., 1.);
         self.is_playing
     }
 
@@ -94,11 +91,11 @@ fn main() {
     let audio = assets::start_audio_engine();
 
     let state = GameState {
-        queue: q.clone(), 
+        queue: q.clone(),
+        delta_time_scale: 1.,
         settings, 
         audio,
-        scene: Some(Box::new(gust::MainLevel::new())),
         is_playing: true,
     };
-    windowing::create_game_window("gust", false, input, q, state)
+    game_loop::create_game_window("gust", false, input, q, Box::new(gust::MainMenu::new()), state)
 }

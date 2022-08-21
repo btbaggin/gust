@@ -32,7 +32,7 @@ impl Circle {
     pub fn set_radius(&mut self, radius: f32) { self.radius = radius }
 }
 impl Shape for Circle {
-    fn set_orient(&mut self, radians: f32) { }
+    fn set_orient(&mut self, _: f32) { }
 }
 
 
@@ -103,7 +103,7 @@ impl Polygon {
                 // See : http://www.oocities.org/pcgpe/math2d.html
                 let e1 = in_vertices[next_hull_index] - in_vertices[hull[out_count]];
                 let e2 = in_vertices[i] - in_vertices[hull[out_count]];
-                let c = crate::utils::cross_v2(e1, e2);
+                let c = super::cross_v2(e1, e2);
                 if c < 0. { next_hull_index = i; }
 
                 // Cross product is zero then e vectors are on same line
@@ -169,7 +169,7 @@ impl Polygon {
             let p1 = self.vertices[i1];
             let p2 = self.vertices[i2];
     
-            let d = crate::utils::cross_v2(p1, p2);
+            let d = super::cross_v2(p1, p2);
             let triangle_area = 0.5 * d;
     
             area += triangle_area;

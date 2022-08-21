@@ -1,15 +1,18 @@
 use std::hash::Hash;
 use crate::input::Input;
 use crate::physics::{RigidBody, RigidBodyHandle, PhysicsMaterial, CollisionShape};
-use crate::V2;
+use crate::assets::{Texture, Images};
+use crate::{utils::sized_rect, V2, Graphics};
+use crate::job_system::ThreadSafeJobQueue;
+use crate::game_loop::UpdateState;
 
 mod generational_array;
 mod scene;
 mod scene_manager;
 mod entity_manager;
 pub use generational_array::{GenerationalArray, GenerationalIndex};
-pub use self::scene::{SceneBehavior};
-pub use self::scene_manager::SceneManager;
+pub use self::scene::{SceneBehavior, SceneLoad};
+pub use self::scene_manager::{SceneManager};
 pub use entity_manager::{EntityManager};
 
 const MAX_ENTITIES: usize = 512;
@@ -94,20 +97,24 @@ impl Entity {
         let mut helper = create_helper!(self);
         self.behavior.initialize(&mut helper);
     }
-    pub fn update(&mut self, delta_time: f32, input: &Input) {
+    pub fn update(&mut self, state: &mut UpdateState) {
         let mut helper = create_helper!(self);
-        self.behavior.update(&mut helper, delta_time, input)
+        self.behavior.update(&mut helper, state)
     }
 }
 
-pub trait EntityBehavior {
+pub trait EntityBehavior: crate::messages::MessageHandler {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 
     fn initialize(&self, e: &mut EntityHelper);
 
-    fn update(&mut self, e: &mut EntityHelper, delta_time: f32, input: &crate::input::Input);
-    fn render(&self, e: &Entity, graphics: &mut crate::Graphics);
+    fn update(&mut self, e: &mut EntityHelper, update_state: &mut UpdateState);
+    fn render(&self, e: &Entity, graphics: &mut Graphics);
+
+    fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
+        Texture::render(graphics, image, sized_rect(e.position, e.scale));
+    }
 }
 
 #[macro_export]

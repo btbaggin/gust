@@ -1,74 +1,96 @@
 use std::ops::{Deref, DerefMut};
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
 use crate::entity::{EntityManager, EntityHandle};
-use crate::entity::scene::{Scene, SceneBehavior};
+use crate::entity::scene::{Scene, SceneBehavior, SceneLoad};
+use crate::job_system::ThreadSafeJobQueue;
+use crate::input::Input;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 
 pub struct SceneManager {
-    scenes: VecDeque<Scene>,
+    scene: Option<Scene>,
     manager: EntityManager,
-    entities: Vec<EntityHandle>,
+    queue: ThreadSafeJobQueue,
 }
 impl SceneManager {
-    pub fn new() -> SceneManager {
+    pub fn new(queue: ThreadSafeJobQueue) -> SceneManager {
         SceneManager { 
-            scenes: VecDeque::new(), 
+            scene: None, 
             manager: EntityManager::new(),
-            entities: vec!(),
+            queue: queue.clone(),
         }
     }
 
-    pub fn current(&self) -> &Scene {
-        self.scenes.back().expect("Scene manager must have a scene loaded")
-    }
-    fn current_mut(&mut self) -> &mut Scene {
-        self.scenes.back_mut().expect("Scene manager must have a scene loaded")
-    }
+    pub fn load(&mut self, mut behavior: Box<dyn SceneBehavior>) {
+        let entities = behavior.load(&mut self.manager, self.queue.clone());
 
-    pub fn load(&mut self, mut behavior: Box<dyn SceneBehavior>, queue: crate::job_system::ThreadSafeJobQueue) {
-        let entities = behavior.load(&mut self.manager, queue);
-
-        let mut scene = Scene { 
+        let scene = Scene { 
             behavior,
             entities,
         };
-        self.scenes.push_back(scene);
+        self.scene = Some(scene);
     }
 
     pub fn unload(&mut self) {
-        if let Some(mut scene) = self.scenes.pop_back() {
+        if let Some(scene) = &mut self.scene {
             scene.behavior.unload(&mut self.manager);
-            for e in scene.entities {
-                self.manager.destroy(e);
+
+            for e in &scene.entities {
+                self.manager.destroy(*e);
             }
+            self.scene = None;
         }
     }
 
-    pub fn update(&mut self, delta_time: f32, input: &crate::input::Input) {
-        for e in &self.entities {
-            let entity = self.manager.get_mut(e).unwrap();
-            let p = entity as *mut crate::entity::Entity as u64;
-            entity.update(delta_time, input);
+    pub fn update(&mut self, state: &mut crate::game_loop::UpdateState) -> bool {
+        let mut new_scene = None;
+        if let Some(scene) = &mut self.scene {
+            let load = scene.behavior.update(state);
+            
+            match load {
+                SceneLoad::Load(b) => { new_scene = Some(b); },
+                SceneLoad::Unload => { },
+                SceneLoad::None => { 
+                    for e in &scene.entities {
+                        let entity = self.manager.get_mut(e).unwrap();
+                        entity.update(state);
+                    }
+                    self.process_messages(state.message_bus);
+                    return true;
+                 },
+            };
         }
+        
+        self.unload();
+        if let Some(b) = new_scene {
+            self.load(b);
+            return true;
+        }
+        return false;
+    }
 
-        for scene in &self.scenes {
-            for e in &scene.entities {
-                let entity = self.manager.get_mut(e).unwrap();
-                entity.update(delta_time, input);
+    pub fn process_messages(&mut self, messages: &mut crate::messages::MessageBus) {
+        if let Some(scene) = &mut self.scene {
+            while let Some(message) = messages.pop_message() {
+                //TODO pass message bus
+                scene.behavior.process(&message);
+
+                for e in &scene.entities {
+                    let entity = self.manager.get_mut(e).unwrap();
+                    entity.behavior.process(&message);
+                }
             }
         }
     }
 
     pub fn render(&self, graphics: &mut crate::Graphics) {
-        for e in &self.entities {
-            let entity = self.manager.get(e).unwrap();
-            entity.behavior.render(entity, graphics);
-        }
-
-        for scene in &self.scenes {
+        if let Some(scene) = &self.scene {
             for e in &scene.entities {
                 let entity = self.manager.get(e).unwrap();
                 entity.behavior.render(entity, graphics);
             }
+            scene.behavior.render(graphics);
         }
     }
 }

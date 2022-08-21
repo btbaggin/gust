@@ -6,17 +6,24 @@ use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{PossiblyCurrent, ContextWrapper};
 use std::time::Instant;
 use crate::entity::{SceneBehavior, SceneManager};
+use crate::{input::Input, job_system::ThreadSafeJobQueue};
+use crate::messages::MessageBus;
 
-pub(crate) trait WindowHandler {
+pub struct UpdateState<'a> {
+    pub delta_time: f32,
+    pub input: &'a Input,
+    pub message_bus: &'a mut MessageBus,
+    pub queue: ThreadSafeJobQueue,
+}
+
+pub trait WindowHandler {
     // fn on_start(&mut self) { }
-    fn on_update(&mut self, delta_time: f32, input: &crate::input::Input, scene_manager: &mut SceneManager) -> bool;
+    fn on_update(&mut self, state: &mut UpdateState, scene: &mut SceneManager) -> bool;
     fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &SceneManager, delta_time: f32, size: PhysicalSize<u32>);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
     fn on_focus(&mut self, _: bool) { }
     fn on_stop(&mut self) { }
-
-    fn next_scene(&mut self) -> Option<Box<dyn SceneBehavior>>;
 }
 
 struct GameWindow {
@@ -67,8 +74,10 @@ fn create_window(event_loop: &EventLoop<()>,
     (context, GameWindow { renderer, size })
 }
 
-pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: crate::input::Input, 
-                                    queue: crate::job_system::ThreadSafeJobQueue, mut handler: H) -> ! 
+//TODO just pass in first scene
+pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: Input, 
+                                    queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
+                                    mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = EventLoop::new();
 
@@ -83,8 +92,11 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
     let mut last_time = Instant::now();
     let mut mouse_position = crate::V2::new(0., 0.);
 
-    let mut scene_manager = crate::entity::SceneManager::new();
+    let mut message_bus = MessageBus::new();
+    let mut scene_manager = crate::entity::SceneManager::new(queue.clone());
     crate::physics::initialize_physics();
+
+    scene_manager.load(scene);
     
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -118,13 +130,15 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                 let delta_time = (now - last_time).as_millis() as f32 / 1000.;
                 last_time = now;
 
-                if let Some(scene) = handler.next_scene() {
-                    scene_manager.load(scene, queue.clone());
-                }
-
                 crate::input::gather(&mut input, mouse_position);
 
-                if !handler.on_update(delta_time, &input, &mut scene_manager) {
+                let mut state = UpdateState {
+                    delta_time,
+                    input: &input,
+                    message_bus: &mut message_bus,
+                    queue: queue.clone(),
+                };
+                if !handler.on_update(&mut state, &mut scene_manager) {
                     *control_flow = ControlFlow::Exit;
                     handler.on_stop();
                 }

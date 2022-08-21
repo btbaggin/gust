@@ -37,7 +37,12 @@ impl EntityManager {
     }
     pub fn dispose_entities(&mut self) {
         for e in &self.old_entities {
+            if let Some(entity) = self.get(e) &&
+               let Some(r) = entity.rigid_body {
+                   crate::physics::RigidBody::destroy(r);
+            }
             self.entities.remove(e);
+
         }
         self.old_entities.clear();
     }

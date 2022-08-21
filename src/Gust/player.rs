@@ -2,8 +2,9 @@ use speedy2d::color::Color;
 use crate::input::{Input, Actions};
 use crate::V2;
 use crate::utils::from_v2;
-use crate::entity::{Entity, EntityHelper};
+use crate::entity::{Entity, EntityHelper, EntityManager};
 use crate::physics::{PhysicsMaterial, Circle, Polygon, CollisionShape};
+use crate::messages::{MessageHandler, Message};
 
 pub struct Player {
 }
@@ -24,21 +25,25 @@ impl crate::entity::EntityBehavior for Player {
          .set_rotation(0.);
     }
 
-    fn update(&mut self, e: &mut EntityHelper, delta_time: f32, input: &Input) {
+    fn update(&mut self, e: &mut EntityHelper, state: &mut crate::game_loop::UpdateState) {
         // if input.action_down(&Actions::Left) { e.alter_position(V2::new(-100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Right) { e.alter_position(V2::new(100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
         // if input.action_down(&Actions::Down) { e.alter_position(V2::new(0., 100. * delta_time)); }
-        if input.action_down(&Actions::Left) { e.apply_force(V2::new(-100., 0.)); }
-        if input.action_down(&Actions::Right) { e.apply_force(V2::new(100., 0.)); }
-        if input.action_down(&Actions::Up) { e.apply_force(V2::new(0., -100.)); }
-        if input.action_down(&Actions::Down) { e.apply_force(V2::new(0., 100.)); }
+        if state.input.action_down(&Actions::Left) { e.apply_force(V2::new(-100., 0.)); }
+        if state.input.action_down(&Actions::Right) { e.apply_force(V2::new(100., 0.)); }
+        if state.input.action_down(&Actions::Up) { e.apply_force(V2::new(0., -100.)); }
+        if state.input.action_down(&Actions::Down) { e.apply_force(V2::new(0., 100.)); }
     }
     
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
+        self.render_texture(crate::assets::Images::Testing, e, graphics);
         //TODO add wrappers for graphics
-        crate::assets::Texture::render(graphics, crate::assets::Images::Testing, crate::utils::sized_rect(e.position, e.scale));
 
 //        graphics.draw_circle(from_v2(e.position), e.scale.x, Color::RED);
     }
+}
+impl MessageHandler for Player {
+    crate::set_address!(Player);
+    fn process(&mut self, message: &Message) {}
 }

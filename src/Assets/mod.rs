@@ -10,7 +10,7 @@ mod font;
 mod sound;
 pub use self::image::{Texture, request_asset_image, request_image, load_image_async};
 pub use self::font::{request_font, load_font_async};
-pub use self::sound::{start_audio_engine, Sound, SoundHandle, SoundStatus, load_sound_async};
+pub use self::sound::{start_audio_engine, Sound, PlayingSound, SoundStatus, load_sound_async, SoundHandle};
 use self::sound::{SOUNDS, SoundList};
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]

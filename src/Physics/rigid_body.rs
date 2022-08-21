@@ -20,16 +20,16 @@ impl PhysicsMaterial {
 pub type RigidBodyHandle = usize;
 pub struct RigidBody {
     pub(super) entity: *mut Entity,
+    
     pub(super) velocity: V2,
-
     pub(super) angular_velocity: f32,
     pub(super) torque: f32,
 
     pub(super) force: V2,
 
     inertia: f32,
-    pub(super) inverse_inertia: f32,
     mass: f32,
+    pub(super) inverse_inertia: f32,
     pub(super) inverse_mass: f32,
 
     pub(super) static_friction: f32,
@@ -72,8 +72,8 @@ impl RigidBody {
     }
 
     pub fn apply_impulse(&mut self, impulse: V2, contact: V2) {
-        self.velocity += crate::utils::scale_v2(impulse, self.inverse_mass);
-        self.angular_velocity += self.inverse_inertia * crate::utils::cross_v2(contact, impulse);
+        self.velocity += impulse * self.inverse_mass;
+        self.angular_velocity += self.inverse_inertia * super::cross_v2(contact, impulse);
     }
 
     pub fn rotate(&mut self, rotation: f32) {
@@ -82,6 +82,11 @@ impl RigidBody {
 
     pub fn apply_force(&mut self, force: V2) {
         self.force += force;
+    }
+
+    pub fn destroy(handle: RigidBodyHandle) {
+        let physics = unsafe { crate::physics::PHYSICS.as_mut().unwrap() };
+        let _ = &mut physics.bodies.remove(handle);
     }
 
     pub fn get(handle: RigidBodyHandle) -> &'static mut RigidBody {

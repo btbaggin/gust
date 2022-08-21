@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::ops::{Add, Mul, Sub};
 
 pub struct Tween<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T>> {
