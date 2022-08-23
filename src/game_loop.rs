@@ -5,7 +5,7 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{PossiblyCurrent, ContextWrapper};
 use std::time::Instant;
-use crate::entity::{SceneBehavior, SceneManager};
+use crate::entity::{SceneBehavior, SceneManager, EntityManager};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::MessageBus;
 
@@ -74,7 +74,6 @@ fn create_window(event_loop: &EventLoop<()>,
     (context, GameWindow { renderer, size })
 }
 
-//TODO just pass in first scene
 pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: Input, 
                                     queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
                                     mut handler: H) -> ! 
@@ -94,7 +93,6 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
 
     let mut message_bus = MessageBus::new();
     let mut scene_manager = crate::entity::SceneManager::new(queue.clone());
-    crate::physics::initialize_physics();
 
     scene_manager.load(scene);
     

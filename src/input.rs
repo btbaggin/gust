@@ -28,6 +28,10 @@ macro_rules! keys_enum {
 
 keys_enum! {
     pub enum Key {
+        MouseLeft = 0x01,
+        MouseRight = 0x02,
+        MouseMiddle = 0x04,
+
         Backspace = 0x08,
         Tab = 0x09,
         Clear = 0x0C,

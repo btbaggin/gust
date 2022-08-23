@@ -11,7 +11,7 @@ mod sound;
 pub use self::image::{Texture, request_asset_image, request_image, load_image_async};
 pub use self::font::{request_font, load_font_async};
 pub use self::sound::{start_audio_engine, Sound, PlayingSound, SoundStatus, load_sound_async, SoundHandle};
-use self::sound::{SOUNDS, SoundList};
+use self::sound::{sounds, SoundList};
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum Images {
@@ -80,23 +80,22 @@ impl AssetSlot {
     }
 }
 
-static mut ASSET_CACHE: Option<PooledCache<32, AssetTypes, AssetSlot>> = None;
+crate::singleton!(asset_cache: PooledCache<32, AssetTypes, AssetSlot> = PooledCache::new());
 
 pub fn initialize_asset_cache() {
-    let mut cache = PooledCache::new();
+    let mut cache = asset_cache();
+
     cache.insert(AssetTypes::Image(Images::Testing), AssetSlot::new(r"C:\Users\allex\Pictures\1bnn3.jpg"));
     cache.insert(AssetTypes::Font(Fonts::Regular), AssetSlot::new(r"C:\Users\allex\Code\yaffe-rs\yaffe-rs\Assets\Roboto-Regular.ttf"));
     cache.insert(AssetTypes::Sound(Sounds::Piano), AssetSlot::new(r"C:\Users\allex\Downloads\piano.wav"));
-    unsafe { ASSET_CACHE = Some(cache); }
-    unsafe { SOUNDS = Some(SoundList::new()); }
 }
 
 fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {
-    let slot = unsafe { ASSET_CACHE.as_mut().unwrap().get_mut(&t) };
+    let slot = asset_cache().get_mut(&t);
     slot.log_message_and_panic(&format!("Invalid slot request {:?}, check that asset has been added", t))
 }
 fn get_slot_index(t: AssetTypes) -> PooledCacheIndex {
-    unsafe { ASSET_CACHE.as_mut().unwrap().index_of(&t) }
+    asset_cache().index_of(&t)
 }
 
 fn send_job_if_unloaded(queue: &mut JobQueue, slot: &mut AssetSlot, job: JobType) -> bool {
@@ -116,7 +115,7 @@ fn load_data(slot: &mut AssetSlot, data: Vec<u8>) {
 }
 
 pub fn clear_old_cache(settings: &crate::settings::SettingsFile) {
-    let map = unsafe { ASSET_CACHE.as_mut().unwrap() };
+    let map = asset_cache();
 
     let mut total_memory = 0;
     let mut last_used_index: Option<PooledCacheIndex> = None;

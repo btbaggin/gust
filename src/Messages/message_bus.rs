@@ -1,28 +1,26 @@
-use super::{Message, MessageType, MessageAddress};
+use super::{Message, MessageKind, MessageAddress};
 use std::collections::VecDeque;
 
 pub struct MessageBus {
     messages: VecDeque<Message>,
-    handlers: Vec<Message>,
 }
 impl MessageBus {
     pub fn new() -> MessageBus {
         MessageBus {
             messages: VecDeque::new(),
-            handlers: Vec::new(),
         }
     }
-    pub fn send(&mut self, message_type: MessageType) {
+    pub fn send(&mut self, kind: MessageKind) {
         let message = Message {
             recipient: None,
-            message_type
+            kind
         };
         self.messages.push_back(message);
     }
-    pub fn send_to(&mut self, message_type: MessageType, recipient: MessageAddress) {
+    pub fn send_to(&mut self, kind: MessageKind, recipient: MessageAddress) {
         let message = Message {
             recipient: Some(recipient),
-            message_type
+            kind
         };
         self.messages.push_back(message);
     }

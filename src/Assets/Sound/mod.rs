@@ -5,10 +5,10 @@ use crate::logger::{PanicLogEntry, info};
 use crate::assets::AssetSlot;
 use crate::job_system::{RawDataPointer, JobType, JobQueue};
 use crate::pooled_cache::PooledCacheIndex;
-use super::{AssetData, ASSET_STATE_LOADED, AssetTypes, get_slot_mut, get_slot_index, Sounds, ASSET_CACHE};
+use super::{AssetData, ASSET_STATE_LOADED, AssetTypes, get_slot_mut, get_slot_index, Sounds, asset_cache};
 
 mod sound_list;
-pub use sound_list::{SoundList, SOUNDS};
+pub use sound_list::{SoundList, sounds};
 
 #[cfg(target_os = "windows")]
 mod win32;
@@ -47,21 +47,20 @@ impl Sound {
             volume: 1.,
             status: SoundStatus::Playing
         };
-        let sounds = unsafe { SOUNDS.as_mut().unwrap() };
+        let sounds = sounds();
         sounds.push(handle)
     }
 
     pub fn get(handle: SoundHandle) -> Option<&'static PlayingSound> { 
-        let sounds = unsafe { SOUNDS.as_ref().unwrap() };
+        let sounds = sounds();
         sounds.get(handle).as_ref()
     }
 
     pub fn get_mut(handle: SoundHandle) -> Option<&'static mut PlayingSound> {
-        let sounds = unsafe { SOUNDS.as_mut().unwrap() };
+        let sounds = sounds();
         sounds.get_mut(handle).as_mut()
     }
 }
-//TODO sound handle
 pub type SoundHandle = usize;
 
 pub struct PlayingSound {
@@ -122,8 +121,8 @@ trait AudioDevice {
     }
 
     fn get_sound_samples(samples: &mut [(f32, f32)]) {
-        let sounds = unsafe { SOUNDS.as_mut().unwrap() };
-        let assets = unsafe { ASSET_CACHE.as_mut().unwrap() };
+        let sounds = sounds();
+        let assets = asset_cache();
 
         let mut remove_indices = vec!();
         for (i, sound) in sounds.iter_mut().enumerate() {

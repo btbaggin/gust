@@ -1,10 +1,8 @@
-use speedy2d::color::Color;
-use crate::input::{Input, Actions};
+use crate::input::Actions;
 use crate::V2;
-use crate::utils::from_v2;
-use crate::entity::{Entity, EntityHelper, EntityManager};
-use crate::physics::{PhysicsMaterial, Circle, Polygon, CollisionShape};
-use crate::messages::{MessageHandler, Message};
+use crate::entity::{Entity, EntityHelper};
+use crate::physics::{PhysicsMaterial, Polygon, CollisionShape};
+use crate::messages::{MessageHandler, Message, MessageBus};
 
 pub struct Player {
 }
@@ -19,9 +17,9 @@ impl crate::entity::EntityBehavior for Player {
     fn initialize(&self, e: &mut EntityHelper) {
         //let shape = CollisionShape::Circle(Circle::new(10.));
         let shape = CollisionShape::Polygon(Polygon::rectangle(50., 50., V2::new(0., 0.)));
-        e.set_position(V2::new(200., 200.))
+        e.set_position(200., 200.)
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
-         .set_scale(V2::new(50., 50.))
+         .set_scale(50., 50.)
          .set_rotation(0.);
     }
 
@@ -30,10 +28,10 @@ impl crate::entity::EntityBehavior for Player {
         // if input.action_down(&Actions::Right) { e.alter_position(V2::new(100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
         // if input.action_down(&Actions::Down) { e.alter_position(V2::new(0., 100. * delta_time)); }
-        if state.input.action_down(&Actions::Left) { e.apply_force(V2::new(-100., 0.)); }
-        if state.input.action_down(&Actions::Right) { e.apply_force(V2::new(100., 0.)); }
-        if state.input.action_down(&Actions::Up) { e.apply_force(V2::new(0., -100.)); }
-        if state.input.action_down(&Actions::Down) { e.apply_force(V2::new(0., 100.)); }
+        if state.input.action_down(&Actions::Left) { e.apply_force(-100., 0.); }
+        if state.input.action_down(&Actions::Right) { e.apply_force(100., 0.); }
+        if state.input.action_down(&Actions::Up) { e.apply_force(0., -100.); }
+        if state.input.action_down(&Actions::Down) { e.apply_force(0., 100.); }
     }
     
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
@@ -45,5 +43,5 @@ impl crate::entity::EntityBehavior for Player {
 }
 impl MessageHandler for Player {
     crate::set_address!(Player);
-    fn process(&mut self, message: &Message) {}
+    fn process(&mut self, message: &Message, message_bus: &mut MessageBus) {}
 }

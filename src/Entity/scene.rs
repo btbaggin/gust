@@ -1,5 +1,5 @@
 use crate::Graphics;
-use super::{EntityHandle, EntityManager, UpdateState};
+use super::{EntityHandle, EntityManager, SceneManager, UpdateState};
 use crate::job_system::ThreadSafeJobQueue;
 
 
@@ -14,8 +14,8 @@ pub struct Scene {
     pub(super) entities: Vec<EntityHandle>,
 }
 pub trait SceneBehavior: crate::messages::MessageHandler {
-    fn load(&mut self, manager: &mut EntityManager, queue: ThreadSafeJobQueue) -> Vec<EntityHandle>;
-    fn unload(&mut self, manager: &mut EntityManager);
+    fn load(&mut self, manager: &mut SceneManager, queue: ThreadSafeJobQueue) -> Vec<EntityHandle>;
+    fn unload(&mut self);
     fn update(&mut self, update_state: &mut UpdateState) -> SceneLoad;
     fn render(&self, graphics: &mut Graphics);
 }

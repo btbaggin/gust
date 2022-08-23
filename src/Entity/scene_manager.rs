@@ -4,6 +4,7 @@ use crate::entity::{EntityManager, EntityHandle};
 use crate::entity::scene::{Scene, SceneBehavior, SceneLoad};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::input::Input;
+use crate::messages::{Message, MessageHandler, MessageBus, TypeAddress, MessageKind};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -17,13 +18,13 @@ impl SceneManager {
     pub fn new(queue: ThreadSafeJobQueue) -> SceneManager {
         SceneManager { 
             scene: None, 
-            manager: EntityManager::new(),
+            manager: EntityManager::new(), //TODO move entity manager out to be global?
             queue: queue.clone(),
         }
     }
 
     pub fn load(&mut self, mut behavior: Box<dyn SceneBehavior>) {
-        let entities = behavior.load(&mut self.manager, self.queue.clone());
+        let entities = behavior.load(self, self.queue.clone());
 
         let scene = Scene { 
             behavior,
@@ -34,7 +35,7 @@ impl SceneManager {
 
     pub fn unload(&mut self) {
         if let Some(scene) = &mut self.scene {
-            scene.behavior.unload(&mut self.manager);
+            scene.behavior.unload();
 
             for e in &scene.entities {
                 self.manager.destroy(*e);
@@ -59,7 +60,7 @@ impl SceneManager {
                     self.process_messages(state.message_bus);
                     return true;
                  },
-            };
+            }
         }
         
         self.unload();
@@ -73,12 +74,11 @@ impl SceneManager {
     pub fn process_messages(&mut self, messages: &mut crate::messages::MessageBus) {
         if let Some(scene) = &mut self.scene {
             while let Some(message) = messages.pop_message() {
-                //TODO pass message bus
-                scene.behavior.process(&message);
+                scene.behavior.process(&message, messages);
 
                 for e in &scene.entities {
                     let entity = self.manager.get_mut(e).unwrap();
-                    entity.behavior.process(&message);
+                    entity.behavior.process(&message, messages);
                 }
             }
         }
@@ -94,6 +94,7 @@ impl SceneManager {
         }
     }
 }
+
 impl Deref for SceneManager {
     type Target = EntityManager;
     fn deref(&self) -> &Self::Target {

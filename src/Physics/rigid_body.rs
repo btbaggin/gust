@@ -65,7 +65,7 @@ impl RigidBody {
             restitution: material.restitution,
             shape,
         };
-        let physics = unsafe { super::PHYSICS.as_mut().unwrap() };
+        let physics = super::physics();
         physics.bodies.push(body);
 
         physics.bodies.len() - 1
@@ -85,12 +85,12 @@ impl RigidBody {
     }
 
     pub fn destroy(handle: RigidBodyHandle) {
-        let physics = unsafe { crate::physics::PHYSICS.as_mut().unwrap() };
+        let physics = super::physics();
         let _ = &mut physics.bodies.remove(handle);
     }
 
     pub fn get(handle: RigidBodyHandle) -> &'static mut RigidBody {
-        let physics = unsafe { crate::physics::PHYSICS.as_mut().unwrap() };
+        let physics = super::physics();
         &mut physics.bodies[handle]
     }
 }

@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 use super::{PlayingSound, SoundHandle};
 use std::collections::VecDeque;
 
-pub static mut SOUNDS: Option<SoundList> = None;
+crate::singleton!(sounds: SoundList = SoundList::new());
 
 pub struct SoundList {
     sounds: Vec<Option<PlayingSound>>,

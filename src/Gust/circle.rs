@@ -1,10 +1,9 @@
 use speedy2d::color::Color;
 use crate::V2;
 use crate::input::Input;
-use crate::utils::from_v2;
 use crate::entity::{Entity, EntityHelper, EntityManager};
 use crate::physics::{PhysicsMaterial, Polygon, CollisionShape};
-use crate::messages::{MessageHandler, Message};
+use crate::messages::{MessageHandler, Message, MessageBus};
 
 pub struct Circle { }
 impl Circle {
@@ -18,9 +17,9 @@ impl crate::entity::EntityBehavior for Circle {
     fn initialize(&self, e: &mut EntityHelper) {
         let shape = CollisionShape::Polygon(Polygon::rectangle(75., 75., V2::new(0., 0.)));
         //let shape = CollisionShape::Circle(crate::physics::Circle::new(75.));
-        e.set_position(V2::new(100., 100.))
+        e.set_position(100., 100.)
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
-         .set_scale(V2::new(75., 75.));
+         .set_scale(75., 75.);
     }
 
     fn update(&mut self, e: &mut EntityHelper, update_state: &mut crate::game_loop::UpdateState) { }
@@ -32,5 +31,5 @@ impl crate::entity::EntityBehavior for Circle {
 }
 impl MessageHandler for Circle {
     crate::set_address!(Circle);
-    fn process(&mut self, message: &Message) {}
+    fn process(&mut self, message: &Message, message_bus: &mut MessageBus) {}
 }

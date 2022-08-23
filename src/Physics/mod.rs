@@ -10,7 +10,7 @@ pub use collision_shape::{CollisionShape, Circle, Polygon};
 pub use rigid_body::{PhysicsMaterial, RigidBody, RigidBodyHandle};
 use manifold::{Manifold, ManifoldHandle};
 
-static mut PHYSICS: Option<Physics> = None;
+crate::singleton!(physics: Physics = Physics { bodies: vec!(), gravity: V2::new(0., 0.) });
 pub const PHYSICS_ITERATIONS: u8 = 10;
 
 pub struct Physics {
@@ -26,12 +26,6 @@ fn cross(a: f32, b: V2) -> V2 {
     V2::new(-a * b.y, a * b.x)
 }
 
-pub fn initialize_physics() {
-    unsafe { PHYSICS = Some(Physics { 
-        bodies: vec!(),
-        gravity: V2::new(0., 0.),
-    }) };
-}
 
 unsafe fn solve_manifold(body_a: &RigidBody, body_b: &RigidBody) -> Manifold {
     let mut m = Manifold::new();
@@ -70,7 +64,7 @@ unsafe fn integrate_velocity(body: &mut RigidBody, gravity: V2, delta_time: f32)
 }
 
 pub unsafe fn step_physics(delta_time: f32) {
-    let physics = PHYSICS.as_mut().unwrap();
+    let physics = physics();
     let bodies = &mut physics.bodies;
 
 	// Generate new collision info

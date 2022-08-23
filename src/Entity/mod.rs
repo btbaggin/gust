@@ -17,11 +17,6 @@ pub use entity_manager::{EntityManager};
 
 const MAX_ENTITIES: usize = 512;
 
-#[derive(Eq, Hash, PartialEq)]
-pub enum EntityTag {
-    Player,
-}
-
 pub type EntityHandle = GenerationalIndex;
 
 pub struct EntityHelper<'a> {
@@ -37,22 +32,22 @@ impl<'a> EntityHelper<'a> {
         *self.rigid_body = Some(rigid_body);
         self
     }
-    pub fn set_position(&mut self, position: V2) -> &mut EntityHelper<'a> {
-        *self.position = position;
+    pub fn set_position(&mut self, x: f32, y: f32) -> &mut EntityHelper<'a> {
+        *self.position = V2::new(x, y);
         self
     }
     pub fn alter_position(&mut self, delta: V2) -> &mut EntityHelper<'a> {
         *self.position += delta;
         self
     }
-    pub fn apply_force(&mut self, force: V2) -> &mut EntityHelper<'a> {
+    pub fn apply_force(&mut self, x: f32, y: f32) -> &mut EntityHelper<'a> {
         if let Some(handle) = *self.rigid_body {
-            RigidBody::get(handle).apply_force(force);
+            RigidBody::get(handle).apply_force(V2::new(x, y));
         }
         self
     }
-    pub fn set_scale(&mut self, scale: V2) -> &mut EntityHelper<'a> {
-        *self.scale = scale;
+    pub fn set_scale(&mut self, x: f32, y: f32) -> &mut EntityHelper<'a> {
+        *self.scale = V2::new(x, y);
         self
     }
     pub fn set_rotation(&mut self, rotation: f32) -> &mut EntityHelper<'a> {

@@ -1,8 +1,8 @@
-use crate::entity::{SceneBehavior, EntityTag, EntityHandle, EntityManager, SceneLoad};
+use crate::entity::{SceneBehavior, EntityHandle, SceneManager, EntityManager, SceneLoad};
 use crate::gust::{Player, Circle};
 use crate::assets::{Sound, Sounds};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Message, MessageHandler};
+use crate::messages::{Message, MessageHandler, MessageBus};
 
 pub struct MainLevel { }
 impl MainLevel {
@@ -11,17 +11,17 @@ impl MainLevel {
     }
 }
 impl SceneBehavior for MainLevel {
-    fn load(&mut self, manager: &mut EntityManager, queue: ThreadSafeJobQueue) -> Vec<EntityHandle> {
+    fn load(&mut self, manager: &mut SceneManager, queue: ThreadSafeJobQueue) -> Vec<EntityHandle> {
         //TODO some way to persist entities
         let mut results = vec!();
         let player = Player::new();
-        results.push(manager.create_tagged(player, EntityTag::Player));
+        results.push(manager.create_tagged(player));
 
         let circle = Circle::new();
         results.push(manager.create(circle));
         results
     }
-    fn unload(&mut self, _manager: &mut EntityManager) {}
+    fn unload(&mut self) {}
     fn update(&mut self, _state: &mut crate::game_loop::UpdateState) -> SceneLoad {
         SceneLoad::None
     }
@@ -29,5 +29,5 @@ impl SceneBehavior for MainLevel {
 }
 impl MessageHandler for MainLevel {
     crate::set_address!(MainLevel);
-    fn process(&mut self, message: &Message) {}
+    fn process(&mut self, message: &Message, message_bus: &mut MessageBus) {}
 }

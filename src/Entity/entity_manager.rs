@@ -1,11 +1,15 @@
 
- use super::{EntityTag, EntityBehavior, EntityHandle, Entity, MAX_ENTITIES};
+ use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES};
  use crate::entity::GenerationalArray;
  use std::collections::HashMap;
+ use std::any::TypeId;
+
+
+crate::singleton!(entity_manager: EntityManager = EntityManager::new());
 
  pub struct EntityManager {
     entities: GenerationalArray<MAX_ENTITIES, Entity>,
-    tags: HashMap<EntityTag, EntityHandle>,
+    tags: HashMap<TypeId, EntityHandle>,
     old_entities: Vec<EntityHandle>,
 }
 
@@ -17,6 +21,7 @@ impl EntityManager {
             old_entities: vec!(),
         }
     }
+
     pub fn create(&mut self, behavior: impl EntityBehavior + 'static) -> EntityHandle {
         let entity = Entity::new(behavior);
         let (handle, data) = self.entities.push(entity);
@@ -24,12 +29,14 @@ impl EntityManager {
 
         handle
     }
-    pub fn create_tagged(&mut self, behavior: impl EntityBehavior + 'static, tag: EntityTag) -> EntityHandle {
+    pub fn create_tagged(&mut self, behavior: impl EntityBehavior + 'static) -> EntityHandle {
+        let address = behavior.address();
         let entity = Entity::new(behavior);
         let (handle, data) = self.entities.push(entity);
         data.initialize();
 
-        self.tags.insert(tag, handle);
+        //TODO make this use a vec
+        self.tags.insert(address, handle);
         handle
     }
     pub fn destroy(&mut self, handle: EntityHandle) {
@@ -52,14 +59,14 @@ impl EntityManager {
     pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Entity> {
         self.entities.get_mut(handle)
     }
-    pub fn find<'a>(&self, tag: &'a EntityTag) -> Option<&Entity> {
-        if let Some(handle) = self.tags.get(tag) {
+    pub fn find<'a>(&self, tag: TypeId) -> Option<&Entity> {
+        if let Some(handle) = self.tags.get(&tag) {
             return self.entities.get(handle);
         }
         None
     }
-    pub fn find_mut<'a>(&mut self, tag: &'a EntityTag) -> Option<&mut Entity> {
-        if let Some(handle) = self.tags.get(tag) {
+    pub fn find_mut<'a>(&mut self, tag: TypeId) -> Option<&mut Entity> {
+        if let Some(handle) = self.tags.get(&tag) {
             return self.entities.get_mut(handle);
         }
         None
@@ -68,9 +75,10 @@ impl EntityManager {
 
 #[macro_export]
 macro_rules! find_entity {
-    ($( $manager:ident ).+, $tag:path, $ty:ty) => {{
+    ($( $manager:ident ).+, $ty:ty) => {{
         let mut typed_entity: Option<&$ty> = None;
-        if let Some(entity) = $($manager.)+find(&$tag) {
+        let address = std::any::TypeId::of::<$ty>();
+        if let Some(entity) = $($manager.)+find(&address) {
             typed_entity = entity.as_any().downcast_ref::<$ty>();
         }
         typed_entity
@@ -78,9 +86,10 @@ macro_rules! find_entity {
 }
 #[macro_export]
 macro_rules! find_entity_mut {
-    ($( $manager:ident ).+, $tag:path, $ty:ty) => {{
+    ($( $manager:ident ).+, $ty:ty) => {{
         let mut typed_entity: Option<&mut $ty> = None;
-        if let Some(entity) = $($manager.)+find_mut(&$tag) {
+        let address = std::any::TypeId::of::<$ty>();
+        if let Some(entity) = $($manager.)+find_mut(&address) {
             typed_entity = entity.as_any_mut().downcast_mut::<$ty>();
         }
         typed_entity
