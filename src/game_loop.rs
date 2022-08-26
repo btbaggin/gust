@@ -10,6 +10,7 @@ use glutin::{PossiblyCurrent, ContextWrapper};
 use crate::entity::{SceneBehavior, Scene};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::{MessageBus, SharedMessageBus};
+use crate::graphics::Graphics;
 
 pub struct UpdateState<'a> {
     pub delta_time: f32,
@@ -21,7 +22,7 @@ pub struct UpdateState<'a> {
 pub trait WindowHandler {
     // fn on_start(&mut self) { }
     fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool;
-    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &Scene, delta_time: f32, size: PhysicalSize<u32>);
+    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, delta_time: f32, size: PhysicalSize<u32>);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
     fn on_focus(&mut self, _: bool) { }
@@ -147,7 +148,8 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
 
                 let size = PhysicalSize::new(window.size.width, window.size.height);
                 window.renderer.draw_frame(|graphics| {
-                    handler.on_render(graphics, &scene, delta_time, size);
+                    let mut graphics = Graphics { graphics, queue: queue.clone() };
+                    handler.on_render(&mut graphics, &scene, delta_time, size);
                 });
                 context.swap_buffers().unwrap();
 

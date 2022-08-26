@@ -37,7 +37,6 @@ use input::Actions;
 
 
 struct GameState {
-    queue: job_system::ThreadSafeJobQueue,
     settings: settings::SettingsFile,
     delta_time_scale: f32,
     audio: std::sync::mpsc::Sender<()>,
@@ -45,12 +44,11 @@ struct GameState {
 }
 
 impl game_loop::WindowHandler for GameState {
-    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &Scene, _delta_time: f32, _size: PhysicalSize<u32>) {
-        let mut graphics = Graphics { graphics, queue: self.queue.clone() };
+    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, _delta_time: f32, _size: PhysicalSize<u32>) {
         graphics.clear_screen(Color::BLACK);
 
         let entity_manager = crate::entity::entity_manager();
-        scene_manager.render(&mut graphics, entity_manager);
+        scene_manager.render(graphics, entity_manager);
     }
 
     fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool {
@@ -94,7 +92,6 @@ fn main() {
     let audio = assets::start_audio_engine();
 
     let state = GameState {
-        queue: q.clone(),
         delta_time_scale: 1.,
         settings, 
         audio,
