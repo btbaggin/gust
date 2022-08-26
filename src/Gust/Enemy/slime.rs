@@ -1,9 +1,8 @@
 use std::hash::Hash;
 use crate::{V2U, V2};
-use crate::input::Actions;
 use crate::entity::{Entity, EntityHelper};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Message, MessageBus};
+use crate::messages::{MessageHandler, Message};
 use crate::graphics::{AnimationPlayer, SpriteSheetOrientation};
 use crate::assets::Images;
 
@@ -28,7 +27,7 @@ impl Slime {
     }
 }
 impl crate::entity::EntityBehavior for Slime {
-    crate::entity!();
+    crate::entity!(Slime);
     
     fn initialize(&mut self, e: &mut EntityHelper) {
         let shape = CollisionShape::Circle(Circle::new(75.));
@@ -46,6 +45,6 @@ impl crate::entity::EntityBehavior for Slime {
     }
 }
 impl MessageHandler for Slime {
-    crate::set_address!(Slime);
-    fn process(&mut self, _message: &Message, _message_bus: &mut MessageBus) {}
+    crate::handle_messages!();
+    fn process(&mut self, _message: &Message) {}
 }

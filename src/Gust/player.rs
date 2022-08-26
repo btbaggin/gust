@@ -1,7 +1,7 @@
 use crate::input::Actions;
 use crate::entity::{Entity, EntityHelper};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Message, MessageBus};
+use crate::messages::{MessageHandler, Message};
 
 pub struct Player {
 }
@@ -11,7 +11,7 @@ impl Player {
     }
 }
 impl crate::entity::EntityBehavior for Player {
-    crate::entity!();
+    crate::entity!(Player);
 
     fn initialize(&mut self, e: &mut EntityHelper) {
         let shape = CollisionShape::Circle(Circle::new(10.));
@@ -41,6 +41,6 @@ impl crate::entity::EntityBehavior for Player {
     }
 }
 impl MessageHandler for Player {
-    crate::set_address!(Player);
-    fn process(&mut self, _message: &Message, _message_bus: &mut MessageBus) {}
+    crate::handle_messages!();
+    fn process(&mut self, _message: &Message) {}
 }

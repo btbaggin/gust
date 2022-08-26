@@ -26,7 +26,7 @@ impl Wave {
         if self.spawn_interval.update(delta_time) {
             // TODO enemy type
             let mut messages = messages.borrow_mut();
-            messages.send_to_group(MessageKind::SpawnEnemy, crate::get_address!(crate::gust::level::Level));
+            messages.send(MessageKind::SpawnEnemy);
             //let manager = crate::entity::entity_manager();
             //manager.create(super::Slime::new());
             self.spawned_count += 1

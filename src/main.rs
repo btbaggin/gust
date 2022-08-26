@@ -32,7 +32,7 @@ pub use graphics::Graphics;
 use input::Actions;
 
 /* TODO
- * Message bus needs to not suck, needs register and unregister
+ * Physics collision layers
  */
 
 

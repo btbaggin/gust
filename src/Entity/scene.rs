@@ -1,7 +1,7 @@
 use crate::Graphics;
 use super::{EntityManager, UpdateState};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::SharedMessageBus;
+use crate::messages::{MessageBus, SharedMessageBus};
 
 
 pub enum SceneLoad {
@@ -19,11 +19,15 @@ impl Scene {
     }
     
     pub fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus) {
-        self.behavior.load(queue, messages)
+        let mut m = messages.borrow_mut();
+        self.behavior.load(queue, &mut m);
+        self.behavior.register(&mut m)
     }
 
-    fn unload(&mut self, entities: &mut EntityManager) {
+    fn unload(&mut self, entities: &mut EntityManager, messages: &SharedMessageBus) {
+        let mut m = messages.borrow_mut();
         self.behavior.unload();
+        self.behavior.unregister(&mut m);
     
         for h in entities.iter_handles() {
             let entity = entities.get_mut(&h).unwrap();
@@ -36,13 +40,13 @@ impl Scene {
         
         match load {
             SceneLoad::Load(b) => { 
-                self.unload(entities);
+                self.unload(entities, &state.message_bus);
                 self.behavior = b;
                 self.load(state.queue.clone(), state.message_bus.clone());
                 true
              },
             SceneLoad::Unload => {
-                self.unload(entities);
+                self.unload(entities, &state.message_bus);
                 false
             },
             SceneLoad::None => { 
@@ -50,7 +54,8 @@ impl Scene {
                     let entity = entities.get_mut(&h).unwrap();
                     entity.update(state);
                 }
-                self.process_messages(&state.message_bus, entities);
+                let mut m = state.message_bus.borrow_mut();
+                m.process_messages();
                 true
             },
         }
@@ -62,22 +67,10 @@ impl Scene {
         }
         self.behavior.render(graphics);
     }
-
-    pub fn process_messages(&mut self, messages: &SharedMessageBus, manager: &mut EntityManager) {
-        let mut messages = messages.borrow_mut();
-        while let Some(message) = messages.pop_message() {
-            self.behavior.process(&message, &mut messages);
-
-            for h in manager.iter_handles() {
-                let entity = manager.get_mut(&h).unwrap();
-                entity.behavior.process(&message, &mut messages);
-            }
-        }
-    }
 }
 
 pub trait SceneBehavior: crate::messages::MessageHandler {
-    fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus);
+    fn load(&mut self, queue: ThreadSafeJobQueue, messages: &mut MessageBus);
     fn unload(&mut self);
     fn update(&mut self, update_state: &mut UpdateState) -> SceneLoad;
     fn render(&self, graphics: &mut Graphics);

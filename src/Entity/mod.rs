@@ -12,6 +12,7 @@ pub use manager::{EntityManager, entity_manager, EntityCreationOptions};
 
 const MAX_ENTITIES: usize = 512;
 
+pub type EntityId = std::any::TypeId;
 pub type EntityHandle = GenerationalIndex;
 
 pub struct EntityHelper<'a> {
@@ -104,6 +105,7 @@ impl Entity {
 }
 
 pub trait EntityBehavior: crate::messages::MessageHandler {
+    fn id(&self) -> EntityId;
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 
@@ -119,7 +121,8 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
 
 #[macro_export]
 macro_rules! entity {
-    () => {
+    ($ty:ty) => {
+        fn id(&self) -> crate::entity::EntityId { std::any::TypeId::of::<$ty>() }
         fn as_any(&self) -> &dyn std::any::Any { self }
         fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
     };

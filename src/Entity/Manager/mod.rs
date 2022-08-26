@@ -1,6 +1,7 @@
 
- use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES};
+ use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES, EntityId};
  use crate::entity::GenerationalArray;
+ use crate::messages::MessageBus;
  use std::collections::HashMap;
  use std::any::TypeId;
 
@@ -38,7 +39,7 @@ impl EntityManager {
         self.create_options(behavior, EntityCreationOptions::None)
     }
     pub fn create_options(&mut self, behavior: impl EntityBehavior + 'static, options: EntityCreationOptions) -> EntityHandle {
-        let address = behavior.address();
+        let id = behavior.id();
         let entity = Entity::new(behavior);
         let (handle, data) = self.entities.push(entity);
         data.initialize();
@@ -49,7 +50,7 @@ impl EntityManager {
 
         //TODO make this use a vec
         match options {
-            EntityCreationOptions::Tag | EntityCreationOptions::Persist => { self.tags.insert(address, handle); },
+            EntityCreationOptions::Tag | EntityCreationOptions::Persist => { self.tags.insert(id, handle); },
             _ => {},
         }
         handle
@@ -67,13 +68,14 @@ impl EntityManager {
         iter::Iter::new(self)
     }
 
-    pub fn dispose_entities(&mut self) {
+    pub fn dispose_entities(&mut self, messages: &mut MessageBus) {
         for e in self.allocated.iter().flatten() {
             let entity = self.get(&e.handle).unwrap();
             if entity.mark_for_destroy {
                 if let Some(r) = entity.rigid_body {
                     crate::physics::RigidBody::destroy(r);
                 }
+                entity.behavior.unregister(messages);
                 self.entities.remove(&e.handle);
             }
         }
@@ -85,13 +87,13 @@ impl EntityManager {
     pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Entity> {
         self.entities.get_mut(handle)
     }
-    pub fn find(&self, tag: TypeId) -> Option<&Entity> {
+    pub fn find(&self, tag: EntityId) -> Option<&Entity> {
         if let Some(handle) = self.tags.get(&tag) {
             return self.entities.get(handle);
         }
         None
     }
-    pub fn find_mut(&mut self, tag: TypeId) -> Option<&mut Entity> {
+    pub fn find_mut(&mut self, tag: EntityId) -> Option<&mut Entity> {
         if let Some(handle) = self.tags.get(&tag) {
             return self.entities.get_mut(handle);
         }

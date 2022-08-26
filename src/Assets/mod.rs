@@ -85,10 +85,10 @@ crate::singleton!(asset_cache: PooledCache<32, AssetTypes, AssetSlot> = PooledCa
 pub fn initialize_asset_cache() {
     let cache = asset_cache();
 
-    cache.insert(AssetTypes::Image(Images::Testing), AssetSlot::new(r"C:\Users\allex\Pictures\1bnn3.jpg"));
-    cache.insert(AssetTypes::Font(Fonts::Regular), AssetSlot::new(r"C:\Users\allex\Code\yaffe-rs\yaffe-rs\Assets\Roboto-Regular.ttf"));
-    cache.insert(AssetTypes::Sound(Sounds::Piano), AssetSlot::new(r"C:\Users\allex\Downloads\piano.wav"));
-    cache.insert(AssetTypes::Image(Images::Slime), AssetSlot::new(r"./resources/slime.png"));
+    cache.insert(AssetTypes::Image(Images::Testing), AssetSlot::new("./resources/1bnn3.jpg"));
+    cache.insert(AssetTypes::Font(Fonts::Regular), AssetSlot::new("./resources/font.ttf"));
+    cache.insert(AssetTypes::Sound(Sounds::Piano), AssetSlot::new("./resources/piano.wav"));
+    cache.insert(AssetTypes::Image(Images::Slime), AssetSlot::new("./resources/slime.png"));
 }
 
 fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {

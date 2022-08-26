@@ -154,7 +154,8 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                 // TODO skip on frame end if game is running slow
                 handler.on_frame_end();
                 let entity_manager = crate::entity::entity_manager();
-                entity_manager.dispose_entities();
+                let mut m = message_bus.borrow_mut();
+                entity_manager.dispose_entities(&mut m);
             },
             _ => {}
         }

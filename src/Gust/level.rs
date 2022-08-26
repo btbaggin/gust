@@ -18,7 +18,7 @@ impl Level {
     }
 }
 impl SceneBehavior for Level {
-    fn load(&mut self, _queue: ThreadSafeJobQueue, messages: SharedMessageBus) {
+    fn load(&mut self, _queue: ThreadSafeJobQueue, _messages: &mut MessageBus) {
         let entity_manager = crate::entity::entity_manager();
         let player = Player::new();
         entity_manager.create_options(player, EntityCreationOptions::Tag);
@@ -34,8 +34,8 @@ impl SceneBehavior for Level {
     fn render(&self, _graphics: &mut crate::Graphics) {}
 }
 impl MessageHandler for Level {
-    crate::set_address!(Level);
-    fn process(&mut self, message: &Message, _message_bus: &mut MessageBus) {
+    crate::handle_messages!(MessageKind::SpawnEnemy);
+    fn process(&mut self, message: &Message) {
         match message.kind() {
             MessageKind::SpawnEnemy => {
                 let manager = crate::entity::entity_manager();

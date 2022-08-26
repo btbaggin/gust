@@ -1,34 +1,31 @@
 mod message_bus;
+use std::hash::Hash;
 pub use message_bus::{MessageBus, SharedMessageBus};
-use crate::entity::{EntityHandle, EntityBehavior};
 
-
+#[derive(PartialEq, Eq, Hash)]
 pub enum MessageKind {
     SpawnEnemy
 }
 
-pub type TypeAddress = std::any::TypeId;
-pub enum MessageAddress {
-    Entity(EntityHandle),
-    Type(TypeAddress),
-}
 
 pub trait MessageHandler {
-    fn address(&self) -> TypeAddress;
-    fn process(&mut self, message: &Message, message_bus: &mut MessageBus);
+    fn process(&mut self, message: &Message);
+    fn register(&mut self, messages: &mut MessageBus);
+    fn unregister(&self, messages: &mut MessageBus);
 }
 
 #[macro_export]
-macro_rules! set_address {
-    ($name:ident) => { fn address(&self) -> crate::messages::TypeAddress { std::any::TypeId::of::<$name>() } }
+macro_rules! handle_messages {
+    ($($message:path),*) => { 
+        fn register(&mut self, _messages: &mut crate::messages::MessageBus) {
+            $(_messages.register(self, $message);)*
+        }
+        fn unregister(&self, messages: &mut crate::messages::MessageBus) {
+            messages.unregister_all(self);
+        }
+    }
 }
-#[macro_export]
-macro_rules! get_address { 
-    ($name:ty) => { std::any::TypeId::of::<$name>() }
-}
-
 pub struct Message {
-    recipient: Option<MessageAddress>,
     kind: MessageKind,
 }
 impl Message {
