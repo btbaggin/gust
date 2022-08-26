@@ -191,7 +191,7 @@ impl Input {
 }
 
 pub fn gather(input: &mut Input, position: V2) {
-    input.previous_input = input.input.clone();
+    input.previous_input = input.input;
     input.mouse_position = position;
 
     #[cfg(target_os = "windows")]

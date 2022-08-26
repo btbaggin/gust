@@ -1,9 +1,8 @@
-use crate::entity::{SceneBehavior, EntityHandle, SceneManager, SceneLoad};
-use crate::gust::{Player, Circle};
+use crate::entity::{SceneBehavior, SceneLoad};
 use crate::assets::{Sound, Sounds, SoundHandle, SoundStatus, Fonts};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Message, MessageHandler, MessageBus};
-use crate::{V2, Graphics, Label};
+use crate::messages::{Message, MessageHandler, MessageBus, SharedMessageBus};
+use crate::Label;
 use crate::input::Actions;
 
 pub struct MainMenu {
@@ -21,12 +20,11 @@ impl MainMenu {
     }
 }
 impl SceneBehavior for MainMenu {
-    fn load(&mut self, manager: &mut SceneManager, queue: ThreadSafeJobQueue) -> Vec<EntityHandle> {
+    fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus) {
         self.audio_handle = Some(Sound::play(&queue, Sounds::Piano));
         self.labels.push(Label::new(String::from("New Game"), Fonts::Regular, 64.));
         self.labels.push(Label::new(String::from("Settings"), Fonts::Regular, 64.));
         self.labels.push(Label::new(String::from("Exit"), Fonts::Regular, 64.));
-        vec!() //TODO none?
     }
     fn unload(&mut self) {
         let sound = Sound::get_mut(self.audio_handle.unwrap()).unwrap();
@@ -42,7 +40,7 @@ impl SceneBehavior for MainMenu {
 
         if state.input.action_pressed(&Actions::Accept) {
             match self.selected_index {
-                0 => return SceneLoad::Load(Box::new(crate::gust::MainLevel::new())),
+                0 => return SceneLoad::Load(Box::new(crate::gust::level::Level::new(state.message_bus.clone()))),
                 1 => return SceneLoad::None,
                 2 => return SceneLoad::Unload,
                 _ => panic!("Invalid selection index"),
@@ -63,5 +61,5 @@ impl SceneBehavior for MainMenu {
 }
 impl MessageHandler for MainMenu {
     crate::set_address!(MainMenu);
-    fn process(&mut self, message: &Message, message_bus: &mut MessageBus) {}
+    fn process(&mut self, _message: &Message, _message_bus: &mut MessageBus) {}
 }

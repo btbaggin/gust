@@ -4,14 +4,13 @@ pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
 
 use game_loop::UpdateState;
-use job_system::ThreadSafeJobQueue;
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
 use speedy2d::Graphics2D;
 use std::sync::Arc;
 use std::cell::RefCell;
 use logger::LogEntry;
-use crate::entity::{SceneBehavior, SceneManager};
+use crate::entity::Scene;
 
 mod assets;
 mod job_system;
@@ -26,12 +25,14 @@ mod input;
 mod gust;
 mod physics;
 mod messages;
-pub use graphics::{Graphics, Label};
-use assets::Fonts;
-use input::{Actions, Input};
+mod math;
+mod ui;
+pub use ui::Label;
+pub use graphics::Graphics;
+use input::Actions;
 
 /* TODO
- * Message bus
+ * Message bus needs to not suck, needs register and unregister
  */
 
 
@@ -44,18 +45,20 @@ struct GameState {
 }
 
 impl game_loop::WindowHandler for GameState {
-    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &SceneManager, _delta_time: f32, _size: PhysicalSize<u32>) {
+    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &Scene, _delta_time: f32, _size: PhysicalSize<u32>) {
         let mut graphics = Graphics { graphics, queue: self.queue.clone() };
         graphics.clear_screen(Color::BLACK);
 
-        scene_manager.render(&mut graphics);
+        let entity_manager = crate::entity::entity_manager();
+        scene_manager.render(&mut graphics, entity_manager);
     }
 
-    fn on_update(&mut self, state: &mut UpdateState, scene: &mut SceneManager) -> bool {
+    fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool {
         settings::update_settings(&mut self.settings).log("Unable to load new settings");
-        state.delta_time = state.delta_time * self.delta_time_scale;
+        state.delta_time *= self.delta_time_scale;
         
-        self.is_playing = scene.update(state);
+        let entity_manager = crate::entity::entity_manager();
+        self.is_playing = scene.update(state, entity_manager);
 
         if state.input.action_pressed(&Actions::Quit) { self.is_playing = false; }
         if state.input.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
@@ -97,5 +100,5 @@ fn main() {
         audio,
         is_playing: true,
     };
-    game_loop::create_game_window("gust", false, input, q, Box::new(gust::MainMenu::new()), state)
+    game_loop::create_game_window("gust", false, input, q, Box::new(gust::main_menu::MainMenu::new()), state)
 }

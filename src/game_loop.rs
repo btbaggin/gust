@@ -1,25 +1,27 @@
+use std::time::Instant;
+use std::rc::Rc;
+use std::cell::RefCell;
 use speedy2d::*;
 use glutin::dpi::PhysicalSize;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{PossiblyCurrent, ContextWrapper};
-use std::time::Instant;
-use crate::entity::{SceneBehavior, SceneManager, EntityManager};
+use crate::entity::{SceneBehavior, Scene};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
-use crate::messages::MessageBus;
+use crate::messages::{MessageBus, SharedMessageBus};
 
 pub struct UpdateState<'a> {
     pub delta_time: f32,
     pub input: &'a Input,
-    pub message_bus: &'a mut MessageBus,
+    pub message_bus: SharedMessageBus,
     pub queue: ThreadSafeJobQueue,
 }
 
 pub trait WindowHandler {
     // fn on_start(&mut self) { }
-    fn on_update(&mut self, state: &mut UpdateState, scene: &mut SceneManager) -> bool;
-    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &SceneManager, delta_time: f32, size: PhysicalSize<u32>);
+    fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool;
+    fn on_render(&mut self, graphics: &mut Graphics2D, scene_manager: &Scene, delta_time: f32, size: PhysicalSize<u32>);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
     fn on_focus(&mut self, _: bool) { }
@@ -91,10 +93,10 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
     let mut last_time = Instant::now();
     let mut mouse_position = crate::V2::new(0., 0.);
 
-    let mut message_bus = MessageBus::new();
-    let mut scene_manager = crate::entity::SceneManager::new(queue.clone());
+    let message_bus = Rc::new(RefCell::new(MessageBus::new()));
 
-    scene_manager.load(scene);
+    let mut scene = crate::entity::Scene::new(scene);
+    scene.load(queue.clone(), message_bus.clone());
     
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -133,10 +135,10 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                 let mut state = UpdateState {
                     delta_time,
                     input: &input,
-                    message_bus: &mut message_bus,
+                    message_bus: message_bus.clone(),
                     queue: queue.clone(),
                 };
-                if !handler.on_update(&mut state, &mut scene_manager) {
+                if !handler.on_update(&mut state, &mut scene) {
                     *control_flow = ControlFlow::Exit;
                     handler.on_stop();
                 }
@@ -145,13 +147,14 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
 
                 let size = PhysicalSize::new(window.size.width, window.size.height);
                 window.renderer.draw_frame(|graphics| {
-                    handler.on_render(graphics, &scene_manager, delta_time, size);
+                    handler.on_render(graphics, &scene, delta_time, size);
                 });
                 context.swap_buffers().unwrap();
 
                 // TODO skip on frame end if game is running slow
                 handler.on_frame_end();
-                scene_manager.dispose_entities();
+                let entity_manager = crate::entity::entity_manager();
+                entity_manager.dispose_entities();
             },
             _ => {}
         }

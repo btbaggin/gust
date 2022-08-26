@@ -7,7 +7,7 @@ impl FrameTimer {
         FrameTimer { current_frame: frames, frames }
     }
 
-    pub fn update(&mut self, delta_time: f32) -> bool {
+    pub fn update(&mut self) -> bool {
         self.current_frame -= 1;
         if self.current_frame == 0 {
             self.current_frame = self.frames;    
@@ -17,13 +17,13 @@ impl FrameTimer {
     }
 }
 
-pub struct RealTimer {
+pub struct Timer {
     current_time: f32,
     time: f32,
 }
-impl RealTimer {
-    pub fn new(time: f32) -> RealTimer {
-        RealTimer { current_time: time, time }
+impl Timer {
+    pub fn new(time: f32) -> Timer {
+        Timer { current_time: time, time }
     }
 
     pub fn update(&mut self, delta_time: f32) -> bool {

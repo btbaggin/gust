@@ -1,26 +1,8 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::ops::{Deref, DerefMut};
-use speedy2d::{Graphics2D, color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout};
-use crate::job_system::ThreadSafeJobQueue;
+use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout};
 use crate::assets::{Fonts, request_font};
-
-pub struct Graphics<'a> {
-    pub graphics: &'a mut Graphics2D,
-    pub queue: ThreadSafeJobQueue,
-}
-impl<'a> Deref for Graphics<'a> {
-    type Target = Graphics2D;
-    fn deref(&self) -> &Self::Target {
-        self.graphics
-    }
-}
-impl<'a> DerefMut for Graphics<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.graphics
-    }
-}
-
+use crate::Graphics;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct Label {
     text: String,
@@ -50,7 +32,7 @@ impl Label {
             if layout.is_none() {
                 *layout = Some(font.layout_text(&self.text, self.size, TextOptions::new()));
             }
-            graphics.draw_text(crate::utils::from_v2(position), color, layout.as_ref().unwrap());
+            graphics.draw_text(crate::math::from_v2(position), color, layout.as_ref().unwrap());
         }
     }
 }

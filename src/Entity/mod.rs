@@ -1,19 +1,14 @@
-use std::hash::Hash;
-use crate::input::Input;
 use crate::physics::{RigidBody, RigidBodyHandle, PhysicsMaterial, CollisionShape};
 use crate::assets::{Texture, Images};
-use crate::{utils::sized_rect, V2, Graphics};
-use crate::job_system::ThreadSafeJobQueue;
+use crate::{math::sized_rect, V2, Graphics};
 use crate::game_loop::UpdateState;
 
 mod generational_array;
 mod scene;
-mod scene_manager;
-mod entity_manager;
+mod manager;
 pub use generational_array::{GenerationalArray, GenerationalIndex};
-pub use self::scene::{SceneBehavior, SceneLoad};
-pub use self::scene_manager::{SceneManager};
-pub use entity_manager::{EntityManager};
+pub use self::scene::{SceneBehavior, SceneLoad, Scene};
+pub use manager::{EntityManager, entity_manager, EntityCreationOptions};
 
 const MAX_ENTITIES: usize = 512;
 
@@ -25,6 +20,7 @@ pub struct EntityHelper<'a> {
     scale: &'a mut V2,
     rotation: &'a mut f32, // radians
     rigid_body: &'a mut Option<RigidBodyHandle>,
+    mark_for_destroy: &'a mut bool,
 }
 impl<'a> EntityHelper<'a> {
     pub fn attach_rigid_body(&mut self, material: PhysicsMaterial, shape: CollisionShape) -> &mut EntityHelper<'a> { 
@@ -57,6 +53,9 @@ impl<'a> EntityHelper<'a> {
         }
         self
     }
+    pub fn destroy(&mut self) {
+        *self.mark_for_destroy = true;
+    }
 }
 macro_rules! create_helper {
     ($entity:ident) => {
@@ -66,6 +65,7 @@ macro_rules! create_helper {
             scale: &mut $entity.scale,
             rotation: &mut $entity.rotation,
             rigid_body: &mut $entity.rigid_body,
+            mark_for_destroy: &mut $entity.mark_for_destroy,
         }
     };
 }
@@ -75,6 +75,7 @@ pub struct Entity {
     pub scale: crate::V2,
     pub rotation: f32, // radians
     pub rigid_body: Option<RigidBodyHandle>,
+    mark_for_destroy: bool,
     behavior: Box<dyn EntityBehavior>,
 }
 impl Entity {
@@ -84,6 +85,7 @@ impl Entity {
             scale: V2::new(0., 0.),
             rotation: 0.,
             behavior: Box::new(behvaior),
+            mark_for_destroy: false,
             rigid_body: None,
         }
 
@@ -96,13 +98,16 @@ impl Entity {
         let mut helper = create_helper!(self);
         self.behavior.update(&mut helper, state)
     }
+    pub fn destroy(&mut self) {
+        self.mark_for_destroy = true;
+    }
 }
 
 pub trait EntityBehavior: crate::messages::MessageHandler {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 
-    fn initialize(&self, e: &mut EntityHelper);
+    fn initialize(&mut self, e: &mut EntityHelper);
 
     fn update(&mut self, e: &mut EntityHelper, update_state: &mut UpdateState);
     fn render(&self, e: &Entity, graphics: &mut Graphics);

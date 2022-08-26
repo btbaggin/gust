@@ -156,6 +156,7 @@ impl AudioDevice for DirectSoundDevice {
 
             // Wait and send.
             unsafe {
+                //TODO better sound that only gets samples for frame?
                 const WAIT_OBJECT_1: u32 = WAIT_OBJECT_0 + 1;
                 match WaitForMultipleObjects(2, self.notify_points.as_ptr(), 0, INFINITE) {
                     WAIT_OBJECT_0 => write(

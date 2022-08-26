@@ -1,6 +1,11 @@
 mod message_bus;
-pub use message_bus::MessageBus;
+pub use message_bus::{MessageBus, SharedMessageBus};
 use crate::entity::{EntityHandle, EntityBehavior};
+
+
+pub enum MessageKind {
+    SpawnEnemy
+}
 
 pub type TypeAddress = std::any::TypeId;
 pub enum MessageAddress {
@@ -20,10 +25,6 @@ macro_rules! set_address {
 #[macro_export]
 macro_rules! get_address { 
     ($name:ty) => { std::any::TypeId::of::<$name>() }
-}
-
-pub enum MessageKind {
-    CreateEntity(Box<dyn EntityBehavior>),
 }
 
 pub struct Message {

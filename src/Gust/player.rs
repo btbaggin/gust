@@ -1,7 +1,6 @@
 use crate::input::Actions;
-use crate::V2;
 use crate::entity::{Entity, EntityHelper};
-use crate::physics::{PhysicsMaterial, Polygon, CollisionShape};
+use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
 use crate::messages::{MessageHandler, Message, MessageBus};
 
 pub struct Player {
@@ -14,9 +13,9 @@ impl Player {
 impl crate::entity::EntityBehavior for Player {
     crate::entity!();
 
-    fn initialize(&self, e: &mut EntityHelper) {
-        //let shape = CollisionShape::Circle(Circle::new(10.));
-        let shape = CollisionShape::Polygon(Polygon::rectangle(50., 50., V2::new(0., 0.)));
+    fn initialize(&mut self, e: &mut EntityHelper) {
+        let shape = CollisionShape::Circle(Circle::new(10.));
+        // let shape = CollisionShape::Polygon(Polygon::rectangle(50., 50., V2::new(0., 0.)));
         e.set_position(200., 200.)
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
          .set_scale(50., 50.)
@@ -43,5 +42,5 @@ impl crate::entity::EntityBehavior for Player {
 }
 impl MessageHandler for Player {
     crate::set_address!(Player);
-    fn process(&mut self, message: &Message, message_bus: &mut MessageBus) {}
+    fn process(&mut self, _message: &Message, _message_bus: &mut MessageBus) {}
 }

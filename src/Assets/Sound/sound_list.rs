@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use super::{PlayingSound, SoundHandle};
 use std::collections::VecDeque;
 
@@ -16,14 +15,13 @@ impl SoundList {
         }
     }
     pub fn push(&mut self, sound: PlayingSound) -> SoundHandle {
-        let inserted_at = if let Some(index) = self.free_indices.pop_front() {
+        if let Some(index) = self.free_indices.pop_front() {
             self.sounds[index] = Some(sound);
             index
         } else {
             self.sounds.push(Some(sound));
             self.sounds.len() - 1
-        };
-        inserted_at
+        }
     }
 
     pub fn get(&self, handle: SoundHandle) -> &Option<PlayingSound> {

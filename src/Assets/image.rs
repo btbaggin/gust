@@ -1,11 +1,11 @@
 use std::sync::atomic::Ordering;
 use std::rc::Rc;
-use crate::job_system::{JobType, RawDataPointer};
-use crate::logger::{PanicLogEntry, info, warn};
+use std::time::Instant;
 use speedy2d::image::*;
 use speedy2d::shape::Rectangle;
+use crate::job_system::{JobType, RawDataPointer};
+use crate::logger::{PanicLogEntry, info, warn};
 use crate::graphics::Graphics;
-use std::time::Instant;
 use super::ASSET_STATE_LOADED;
 use super::{AssetData, SlotTag, AssetSlot, AssetTypes, get_slot_mut, Images};
 
@@ -116,6 +116,7 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
 pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
     info!("Loading image asynchronously {:?}", path);
 
+    let path = std::fs::canonicalize(path).expect("invalid image path");
     let data = std::fs::read(&path).log_and_panic();
 
     let mut reader = image::io::Reader::new(std::io::Cursor::new(data));

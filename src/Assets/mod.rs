@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicU8, Ordering};
-use crate::logger::PanicLogEntry;
-use speedy2d::font::*;
 use std::time::Instant;
+use speedy2d::font::*;
 use crate::pooled_cache::{PooledCache, PooledCacheIndex};
 use crate::job_system::{JobType, JobQueue};
+use crate::logger::PanicLogEntry;
 
 mod image;
 mod font;
@@ -11,11 +11,11 @@ mod sound;
 pub use self::image::{Texture, request_asset_image, request_image, load_image_async};
 pub use self::font::{request_font, load_font_async};
 pub use self::sound::{start_audio_engine, Sound, PlayingSound, SoundStatus, load_sound_async, SoundHandle};
-use self::sound::{sounds, SoundList};
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum Images {
-    Testing
+    Testing,
+    Slime,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -83,11 +83,12 @@ impl AssetSlot {
 crate::singleton!(asset_cache: PooledCache<32, AssetTypes, AssetSlot> = PooledCache::new());
 
 pub fn initialize_asset_cache() {
-    let mut cache = asset_cache();
+    let cache = asset_cache();
 
     cache.insert(AssetTypes::Image(Images::Testing), AssetSlot::new(r"C:\Users\allex\Pictures\1bnn3.jpg"));
     cache.insert(AssetTypes::Font(Fonts::Regular), AssetSlot::new(r"C:\Users\allex\Code\yaffe-rs\yaffe-rs\Assets\Roboto-Regular.ttf"));
     cache.insert(AssetTypes::Sound(Sounds::Piano), AssetSlot::new(r"C:\Users\allex\Downloads\piano.wav"));
+    cache.insert(AssetTypes::Image(Images::Slime), AssetSlot::new(r"./resources/slime.png"));
 }
 
 fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {

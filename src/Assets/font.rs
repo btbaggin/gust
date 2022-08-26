@@ -36,6 +36,7 @@ pub fn request_font<'a>(graphics: &mut Graphics, font: Fonts) -> Option<&'a Font
 pub fn load_font_async(path: &'static str, slot: RawDataPointer) {
     info!("Loading font asynchronously {:?}", path);
 
+    let path = std::fs::canonicalize(path).expect("invalid font path");
     let data = std::fs::read(&path).log_and_panic();
 
     let asset_slot = slot.get_inner::<AssetSlot>();

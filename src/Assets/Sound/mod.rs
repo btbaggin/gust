@@ -1,6 +1,6 @@
+#![allow(dead_code)]
 use std::sync::atomic::Ordering;
 use std::time::Instant;
-use std::collections::VecDeque;
 use crate::logger::{PanicLogEntry, info};
 use crate::assets::AssetSlot;
 use crate::job_system::{RawDataPointer, JobType, JobQueue};
@@ -202,7 +202,8 @@ pub fn request_sound<'a>(queue: &mut JobQueue, sound: Sounds) -> Option<&'a mut 
 pub fn load_sound_async(path: &'static str, slot: RawDataPointer) {
     info!("Loading sound asynchronously {:?}", path);
 
-    let mut inp_file = std::fs::File::open(std::path::Path::new(path)).log_and_panic();
+    let path = std::fs::canonicalize(path).expect("invalid sound file path");
+    let mut inp_file = std::fs::File::open(&path).log_and_panic();
     let (_header, data) = wav::read(&mut inp_file).log_and_panic();
 
     let samples = match data {

@@ -2,11 +2,7 @@ use std::mem::MaybeUninit;
 
 mod timer;
 mod tween;
-mod animation;
-mod math;
-pub use timer::{FrameTimer, RealTimer};
-pub use animation::{Animation};
-pub use self::math::{from_v2, sized_rect};
+pub use timer::{FrameTimer, Timer};
 
 #[macro_export]
 macro_rules! unsafe_read_type {

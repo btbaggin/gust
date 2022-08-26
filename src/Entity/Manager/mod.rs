@@ -4,13 +4,25 @@
  use std::collections::HashMap;
  use std::any::TypeId;
 
-
+mod iter;
+pub use iter::Iter;
 crate::singleton!(entity_manager: EntityManager = EntityManager::new());
 
- pub struct EntityManager {
+pub enum EntityCreationOptions {
+    None,
+    Tag,
+    Persist,
+}
+
+struct EntityStorage {
+    handle: EntityHandle,
+    persist: bool,
+}
+
+pub struct EntityManager {
     entities: GenerationalArray<MAX_ENTITIES, Entity>,
+    allocated: Vec<Option<EntityStorage>>,
     tags: HashMap<TypeId, EntityHandle>,
-    old_entities: Vec<EntityHandle>,
 }
 
 impl EntityManager {
@@ -18,40 +30,54 @@ impl EntityManager {
         EntityManager { 
             entities: GenerationalArray::new(),
             tags: HashMap::new(),
-            old_entities: vec!(),
+            allocated: Vec::with_capacity(MAX_ENTITIES / 2), // Assume half utilization of max entities
         }
     }
 
     pub fn create(&mut self, behavior: impl EntityBehavior + 'static) -> EntityHandle {
-        let entity = Entity::new(behavior);
-        let (handle, data) = self.entities.push(entity);
-        data.initialize();
-
-        handle
+        self.create_options(behavior, EntityCreationOptions::None)
     }
-    pub fn create_tagged(&mut self, behavior: impl EntityBehavior + 'static) -> EntityHandle {
+    pub fn create_options(&mut self, behavior: impl EntityBehavior + 'static, options: EntityCreationOptions) -> EntityHandle {
         let address = behavior.address();
         let entity = Entity::new(behavior);
         let (handle, data) = self.entities.push(entity);
         data.initialize();
 
+        let persist = matches!(options, EntityCreationOptions::Persist);
+        let storage = EntityStorage { handle, persist, };
+        self.allocated.insert(handle.index, Some(storage));
+
         //TODO make this use a vec
-        self.tags.insert(address, handle);
+        match options {
+            EntityCreationOptions::Tag | EntityCreationOptions::Persist => { self.tags.insert(address, handle); },
+            _ => {},
+        }
         handle
     }
-    pub fn destroy(&mut self, handle: EntityHandle) {
-        self.old_entities.push(handle);
-    }
-    pub fn dispose_entities(&mut self) {
-        for e in &self.old_entities {
-            if let Some(entity) = self.get(e) &&
-               let Some(r) = entity.rigid_body {
-                   crate::physics::RigidBody::destroy(r);
-            }
-            self.entities.remove(e);
 
+    pub fn iter_handles(&self) -> Vec<EntityHandle> {
+        self.allocated
+            .iter()
+            .filter(|e| e.is_some())
+            .map(|e| e.as_ref().unwrap().handle)
+            .collect()
+    }
+
+    pub fn iter(&self) -> iter::Iter {
+        iter::Iter::new(self)
+    }
+
+    pub fn dispose_entities(&mut self) {
+        for e in self.allocated.iter().flatten() {
+            let entity = self.get(&e.handle).unwrap();
+            if entity.mark_for_destroy {
+                if let Some(r) = entity.rigid_body {
+                    crate::physics::RigidBody::destroy(r);
+                }
+                self.entities.remove(&e.handle);
+            }
         }
-        self.old_entities.clear();
+        //TODO self.allocated = None;
     }
     pub fn get<'a>(&self, handle: &'a EntityHandle) -> Option<&Entity> {
         self.entities.get(handle)
@@ -59,13 +85,13 @@ impl EntityManager {
     pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Entity> {
         self.entities.get_mut(handle)
     }
-    pub fn find<'a>(&self, tag: TypeId) -> Option<&Entity> {
+    pub fn find(&self, tag: TypeId) -> Option<&Entity> {
         if let Some(handle) = self.tags.get(&tag) {
             return self.entities.get(handle);
         }
         None
     }
-    pub fn find_mut<'a>(&mut self, tag: TypeId) -> Option<&mut Entity> {
+    pub fn find_mut(&mut self, tag: TypeId) -> Option<&mut Entity> {
         if let Some(handle) = self.tags.get(&tag) {
             return self.entities.get_mut(handle);
         }
