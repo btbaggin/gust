@@ -1,6 +1,5 @@
 use super::EnemyType;
 use crate::utils::Timer;
-use crate::messages::{SharedMessageBus, MessageKind};
 
 pub struct Wave {
     enemy_count: u32,
@@ -18,17 +17,14 @@ impl Wave {
         }
     }
 
-    pub fn update(&mut self, delta_time: f32, messages: SharedMessageBus) {
+    pub fn update(&mut self, delta_time: f32) {
         if self.spawned_count == self.enemy_count {
             return;
         }
 
         if self.spawn_interval.update(delta_time) {
-            // TODO enemy type
-            let mut messages = messages.borrow_mut();
-            messages.send(MessageKind::SpawnEnemy);
-            //let manager = crate::entity::entity_manager();
-            //manager.create(super::Slime::new());
+            let manager = crate::entity::entity_manager();
+            manager.create(crate::gust::enemy::Slime::new());
             self.spawned_count += 1
         }
     }
@@ -39,16 +35,14 @@ pub struct EnemySpawner {
     intervals: Vec<f32>,
     time_since_start: f32,
     wave_index: usize,
-    messages: SharedMessageBus
 }
 impl EnemySpawner {
-    pub fn new(messages: SharedMessageBus) -> EnemySpawner {
+    pub fn new() -> EnemySpawner {
         EnemySpawner {
             waves: vec!(),
             intervals: vec!(),
             time_since_start: 0.,
             wave_index: 0,
-            messages
         }
     }
 
@@ -66,7 +60,7 @@ impl EnemySpawner {
         }
         
         for i in 0..self.wave_index + 1 {
-            self.waves[i].update(delta_time, self.messages.clone());
+            self.waves[i].update(delta_time);
         }
     }
 }

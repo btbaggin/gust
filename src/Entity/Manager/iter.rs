@@ -23,6 +23,9 @@ impl<'a> Iterator for Iter<'a> {
         }
         while self.allocated[self.current].is_none() {
             self.current += 1;
+            if self.current >= self.allocated.len() {
+                return None;
+            }
         }
         let handle = self.allocated[self.current].as_ref().unwrap().handle;
         self.current += 1;

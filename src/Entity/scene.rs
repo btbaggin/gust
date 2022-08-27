@@ -35,7 +35,7 @@ impl Scene {
         }
     }
 
-    pub fn update(&mut self, state: &mut crate::game_loop::UpdateState, entities: &mut EntityManager) -> bool {
+    pub fn update(&mut self, state: &mut crate::UpdateState, entities: &mut EntityManager) -> bool {
         let load = self.behavior.update(state);
         
         match load {

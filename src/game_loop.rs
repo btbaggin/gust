@@ -9,19 +9,12 @@ use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{PossiblyCurrent, ContextWrapper};
 use crate::entity::{SceneBehavior, Scene};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
-use crate::messages::{MessageBus, SharedMessageBus};
+use crate::messages::MessageBus;
 use crate::graphics::Graphics;
-
-pub struct UpdateState<'a> {
-    pub delta_time: f32,
-    pub input: &'a Input,
-    pub message_bus: SharedMessageBus,
-    pub queue: ThreadSafeJobQueue,
-}
 
 pub trait WindowHandler {
     // fn on_start(&mut self) { }
-    fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool;
+    fn on_update(&mut self, state: &mut crate::UpdateState, scene: &mut Scene) -> bool;
     fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, delta_time: f32, size: PhysicalSize<u32>);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
@@ -133,12 +126,12 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
 
                 crate::input::gather(&mut input, mouse_position);
 
-                let mut state = UpdateState {
+                let mut state = crate::UpdateState::new(
                     delta_time,
-                    input: &input,
-                    message_bus: message_bus.clone(),
-                    queue: queue.clone(),
-                };
+                    &input,
+                    message_bus.clone(),
+                    queue.clone(),
+                );
                 if !handler.on_update(&mut state, &mut scene) {
                     *control_flow = ControlFlow::Exit;
                     handler.on_stop();

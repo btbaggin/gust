@@ -1,7 +1,9 @@
 use crate::input::Actions;
-use crate::entity::{Entity, EntityHelper};
+use crate::V2;
+use crate::entity::{Entity, EntityInitialization, EntityUpdate};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
 use crate::messages::{MessageHandler, Message};
+use crate::gust::PhysicsLayers;
 
 pub struct Player {
 }
@@ -13,24 +15,26 @@ impl Player {
 impl crate::entity::EntityBehavior for Player {
     crate::entity!(Player);
 
-    fn initialize(&mut self, e: &mut EntityHelper) {
+    fn initialize(&mut self, e: &mut EntityInitialization) {
         let shape = CollisionShape::Circle(Circle::new(10.));
         // let shape = CollisionShape::Polygon(Polygon::rectangle(50., 50., V2::new(0., 0.)));
-        e.set_position(200., 200.)
+        e.set_position(V2::new(200., 200.))
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
+         .collision_layer(PhysicsLayers::Player as u8)
+         .collides_with(PhysicsLayers::Enemy as u8)
          .set_scale(50., 50.)
          .set_rotation(0.);
     }
 
-    fn update(&mut self, e: &mut EntityHelper, state: &mut crate::game_loop::UpdateState) {
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
         // if input.action_down(&Actions::Left) { e.alter_position(V2::new(-100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Right) { e.alter_position(V2::new(100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
         // if input.action_down(&Actions::Down) { e.alter_position(V2::new(0., 100. * delta_time)); }
-        if state.input.action_down(&Actions::Left) { e.apply_force(-100., 0.); }
-        if state.input.action_down(&Actions::Right) { e.apply_force(100., 0.); }
-        if state.input.action_down(&Actions::Up) { e.apply_force(0., -100.); }
-        if state.input.action_down(&Actions::Down) { e.apply_force(0., 100.); }
+        if state.action_down(&Actions::Left) { e.apply_force(-100., 0.); }
+        if state.action_down(&Actions::Right) { e.apply_force(100., 0.); }
+        if state.action_down(&Actions::Up) { e.apply_force(0., -100.); }
+        if state.action_down(&Actions::Down) { e.apply_force(0., 100.); }
     }
     
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {

@@ -3,7 +3,6 @@
 pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
 
-use game_loop::UpdateState;
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
 use speedy2d::Graphics2D;
@@ -11,6 +10,7 @@ use std::sync::Arc;
 use std::cell::RefCell;
 use logger::LogEntry;
 use crate::entity::Scene;
+use input::Actions;
 
 mod assets;
 mod job_system;
@@ -27,9 +27,9 @@ mod physics;
 mod messages;
 mod math;
 mod ui;
-pub use ui::Label;
+mod update_state;
 pub use graphics::Graphics;
-use input::Actions;
+pub use update_state::UpdateState;
 
 /* TODO
  * Physics collision layers
@@ -58,9 +58,9 @@ impl game_loop::WindowHandler for GameState {
         let entity_manager = crate::entity::entity_manager();
         self.is_playing = scene.update(state, entity_manager);
 
-        if state.input.action_pressed(&Actions::Quit) { self.is_playing = false; }
-        if state.input.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
-        if state.input.action_pressed(&Actions::Faster) { self.delta_time_scale += 0.1; }
+        if state.action_pressed(&Actions::Quit) { self.is_playing = false; }
+        if state.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
+        if state.action_pressed(&Actions::Faster) { self.delta_time_scale += 0.1; }
         self.delta_time_scale = self.delta_time_scale.clamp(0., 1.);
         self.is_playing
     }

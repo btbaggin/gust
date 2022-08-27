@@ -69,14 +69,18 @@ impl EntityManager {
     }
 
     pub fn dispose_entities(&mut self, messages: &mut MessageBus) {
-        for e in self.allocated.iter().flatten() {
-            let entity = self.get(&e.handle).unwrap();
-            if entity.mark_for_destroy {
-                if let Some(r) = entity.rigid_body {
-                    crate::physics::RigidBody::destroy(r);
+        for i in 0..self.allocated.len() {
+            let handle = &self.allocated[i];
+            if let Some(e) = handle {
+                let entity = self.get(&e.handle).unwrap();
+                if entity.mark_for_destroy {
+                    if let Some(r) = entity.rigid_body {
+                        crate::physics::RigidBody::destroy(r);
+                    }
+                    entity.behavior.unregister(messages);
+                    self.entities.remove(&e.handle);
+                    self.allocated[i] = None;
                 }
-                entity.behavior.unregister(messages);
-                self.entities.remove(&e.handle);
             }
         }
         //TODO self.allocated = None;
@@ -106,7 +110,7 @@ macro_rules! find_entity {
     ($( $manager:ident ).+, $ty:ty) => {{
         let mut typed_entity: Option<&$ty> = None;
         let address = std::any::TypeId::of::<$ty>();
-        if let Some(entity) = $($manager.)+find(&address) {
+        if let Some(entity) = $($manager.)+find(address) {
             typed_entity = entity.as_any().downcast_ref::<$ty>();
         }
         typed_entity
@@ -117,7 +121,7 @@ macro_rules! find_entity_mut {
     ($( $manager:ident ).+, $ty:ty) => {{
         let mut typed_entity: Option<&mut $ty> = None;
         let address = std::any::TypeId::of::<$ty>();
-        if let Some(entity) = $($manager.)+find_mut(&address) {
+        if let Some(entity) = $($manager.)+find_mut(address) {
             typed_entity = entity.as_any_mut().downcast_mut::<$ty>();
         }
         typed_entity

@@ -2,7 +2,7 @@ use crate::entity::{SceneBehavior, SceneLoad};
 use crate::assets::{Sound, Sounds, SoundHandle, SoundStatus, Fonts};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::messages::{Message, MessageHandler, MessageBus};
-use crate::Label;
+use crate::ui::Label;
 use crate::input::Actions;
 
 pub struct MainMenu {
@@ -30,17 +30,17 @@ impl SceneBehavior for MainMenu {
         let sound = Sound::get_mut(self.audio_handle.unwrap()).unwrap();
         sound.set_status(SoundStatus::Stopped);
     }
-    fn update(&mut self, state: &mut crate::game_loop::UpdateState) -> SceneLoad {
-        if state.input.action_pressed(&Actions::Up) && self.selected_index > 0 { 
+    fn update(&mut self, state: &mut crate::UpdateState) -> SceneLoad {
+        if state.action_pressed(&Actions::Up) && self.selected_index > 0 { 
             self.selected_index -= 1;
         }
-        if state.input.action_pressed(&Actions::Down) && self.selected_index < self.labels.len() - 1 { 
+        if state.action_pressed(&Actions::Down) && self.selected_index < self.labels.len() - 1 { 
             self.selected_index += 1;
         }
 
-        if state.input.action_pressed(&Actions::Accept) {
+        if state.action_pressed(&Actions::Accept) {
             match self.selected_index {
-                0 => return SceneLoad::Load(Box::new(crate::gust::level::Level::new(state.message_bus.clone()))),
+                0 => return SceneLoad::Load(Box::new(crate::gust::level::Level::new())),
                 1 => return SceneLoad::None,
                 2 => return SceneLoad::Unload,
                 _ => panic!("Invalid selection index"),

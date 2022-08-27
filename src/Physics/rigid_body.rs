@@ -21,6 +21,8 @@ pub type RigidBodyHandle = usize;
 pub struct RigidBody {
     pub(super) entity: *mut Entity,
     
+    pub(super) layer: u8,
+    pub(super) colliding_layers: u8,
     pub(super) velocity: V2,
     pub(super) angular_velocity: f32,
     pub(super) torque: f32,
@@ -38,7 +40,7 @@ pub struct RigidBody {
     pub(super) shape: super::CollisionShape,
 }
 impl RigidBody {
-    pub fn attach(entity: *mut Entity, material: PhysicsMaterial, shape: super::CollisionShape) -> RigidBodyHandle {
+    pub fn attach(entity: *mut Entity, material: PhysicsMaterial, shape: super::CollisionShape, layer: u8, colliding_layers: u8) -> RigidBodyHandle {
         let (mass, inertia) = match &shape {
             super::CollisionShape::Circle(c) => {
                 let m = std::f64::consts::PI as f32 * c.radius() * c.radius() * material.density;
@@ -52,6 +54,8 @@ impl RigidBody {
 
         let body = RigidBody {
             entity,
+            layer,
+            colliding_layers,
             velocity: V2::new(0., 0.),
             angular_velocity: 0.,
             torque: 0.,
@@ -86,6 +90,7 @@ impl RigidBody {
 
     pub fn destroy(handle: RigidBodyHandle) {
         let physics = super::physics();
+        //TODO this doesnt work because indexes change
         let _ = &mut physics.bodies.remove(handle);
     }
 

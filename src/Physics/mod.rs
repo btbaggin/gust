@@ -78,17 +78,20 @@ pub unsafe fn step_physics(delta_time: f32) {
             let b = &bodies[j];
 
             if a.inverse_mass + b.inverse_mass == 0. {
-                continue;
-            }
-
-            let manifold = solve_manifold(a, b);
-            if manifold.contact_count > 0 {
-                let handle = ManifoldHandle {
-                    body_a: i,
-                    body_b: j,
-                    manifold,
-                };
-                contacts.push(handle);
+                // both objects are static, no collision will occur
+            } else if a.colliding_layers & b.layer == 0 {
+                // objects will not collide due to layers
+            } else {
+                // objects will collide
+                let manifold = solve_manifold(a, b);
+                if manifold.contact_count > 0 {
+                    let handle = ManifoldHandle {
+                        body_a: i,
+                        body_b: j,
+                        manifold,
+                    };
+                    contacts.push(handle);
+                }
             }
             j += 1;
         }

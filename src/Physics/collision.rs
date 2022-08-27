@@ -79,8 +79,7 @@ pub fn circle_to_polygon(manifold: &mut Manifold, entity_a: &Entity, entity_b: &
 		manifold.contact_count = 1;
 		let n = v1 - center;
 		let n = b.u * n;
-		let n = n.normalize();
-		manifold.normal = n;
+		manifold.normal = n.normalize();
 		v1 = b.u * v1 + entity_b.position;
 		manifold.contacts[0] = v1;
 	} else if dot2 <= 0. { 
@@ -89,10 +88,10 @@ pub fn circle_to_polygon(manifold: &mut Manifold, entity_a: &Entity, entity_b: &
 
 		manifold.contact_count = 1;
 		let n = v2 - center;
-		v2 = b.u * v2 + entity_b.position;
-		manifold.contacts[0] = v2;
 		let n = b.u * n;
 		manifold.normal = n.normalize();
+		v2 = b.u * v2 + entity_b.position;
+		manifold.contacts[0] = v2;
 	} else  {
         // Closest to face
 		let n = normals[face_normal];
