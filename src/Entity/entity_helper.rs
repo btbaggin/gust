@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::physics::{RigidBody, RigidBodyHandle, PhysicsMaterial, CollisionShape};
 use super::Entity;
 use crate::V2;
@@ -25,6 +26,7 @@ impl<'a> EntityInitialization<'a> {
         self.colliding_layers = Some(layer);
         self
     }
+    pub fn position(&self) -> V2 { *self.position }
     pub fn set_position(&mut self, position: V2) -> &mut EntityInitialization<'a> {
         *self.position = position;
         self
@@ -47,6 +49,7 @@ pub struct EntityUpdate<'a> {
     pub(super) mark_for_destroy: &'a mut bool,
 }
 impl<'a> EntityUpdate<'a> {
+    pub fn position(&self) -> V2 { *self.position }
     pub fn set_position(&mut self, position: V2) -> &mut EntityUpdate<'a> {
         *self.position = position;
         self

@@ -24,7 +24,7 @@ impl Wave {
 
         if self.spawn_interval.update(delta_time) {
             let manager = crate::entity::entity_manager();
-            manager.create(crate::gust::enemy::Slime::new());
+            manager.create(crate::gust::enemy::Enemy::new());
             self.spawned_count += 1
         }
     }

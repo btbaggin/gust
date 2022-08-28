@@ -2,6 +2,7 @@
  use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES, EntityId};
  use crate::entity::GenerationalArray;
  use crate::messages::MessageBus;
+ use crate::V2;
  use std::collections::HashMap;
  use std::any::TypeId;
 
@@ -36,11 +37,17 @@ impl EntityManager {
     }
 
     pub fn create(&mut self, behavior: impl EntityBehavior + 'static) -> EntityHandle {
-        self.create_options(behavior, EntityCreationOptions::None)
+        self.create_options_at(behavior, V2::new(0., 0.), EntityCreationOptions::None)
+    }
+    pub fn create_at(&mut self, behavior: impl EntityBehavior + 'static, position: V2) -> EntityHandle {
+        self.create_options_at(behavior, position, EntityCreationOptions::None)
     }
     pub fn create_options(&mut self, behavior: impl EntityBehavior + 'static, options: EntityCreationOptions) -> EntityHandle {
+        self.create_options_at(behavior, V2::new(0., 0.), options)
+    }
+    pub fn create_options_at(&mut self, behavior: impl EntityBehavior + 'static, position: V2, options: EntityCreationOptions) -> EntityHandle {
         let id = behavior.id();
-        let entity = Entity::new(behavior);
+        let entity = Entity::new(behavior, position);
         let (handle, data) = self.entities.push(entity);
         data.initialize();
 
@@ -48,7 +55,6 @@ impl EntityManager {
         let storage = EntityStorage { handle, persist, };
         self.allocated.insert(handle.index, Some(storage));
 
-        //TODO make this use a vec
         match options {
             EntityCreationOptions::Tag | EntityCreationOptions::Persist => { self.tags.insert(id, handle); },
             _ => {},
@@ -83,7 +89,6 @@ impl EntityManager {
                 }
             }
         }
-        //TODO self.allocated = None;
     }
     pub fn get<'a>(&self, handle: &'a EntityHandle) -> Option<&Entity> {
         self.entities.get(handle)

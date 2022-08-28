@@ -32,7 +32,6 @@ pub use graphics::Graphics;
 pub use update_state::UpdateState;
 
 /* TODO
- * Physics collision layers
  */
 
 
@@ -58,7 +57,6 @@ impl game_loop::WindowHandler for GameState {
         let entity_manager = crate::entity::entity_manager();
         self.is_playing = scene.update(state, entity_manager);
 
-        if state.action_pressed(&Actions::Quit) { self.is_playing = false; }
         if state.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
         if state.action_pressed(&Actions::Faster) { self.delta_time_scale += 0.1; }
         self.delta_time_scale = self.delta_time_scale.clamp(0., 1.);
@@ -97,5 +95,11 @@ fn main() {
         audio,
         is_playing: true,
     };
-    game_loop::create_game_window("gust", false, input, q, Box::new(gust::main_menu::MainMenu::new()), state)
+    game_loop::create_game_window("gust", 
+                                  false,
+                                  60,
+                                  input,
+                                  q,
+                                  Box::new(gust::main_menu::MainMenu::new()),
+                                  state)
 }

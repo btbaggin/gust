@@ -31,9 +31,9 @@ pub struct Entity {
     behavior: Box<dyn EntityBehavior>,
 }
 impl Entity {
-    pub fn new(behvaior: impl EntityBehavior + 'static) -> Entity {
+    pub fn new(behvaior: impl EntityBehavior + 'static, position: V2) -> Entity {
         Entity {
-            position: V2::new(0., 0.),
+            position,
             scale: V2::new(0., 0.),
             rotation: 0.,
             behavior: Box::new(behvaior),
@@ -95,6 +95,9 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
 
     fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
         Texture::render(graphics, image, sized_rect(e.position, e.scale));
+    }
+    fn render_texture_tinted(&self, image: Images, tint: speedy2d::color::Color, e: &Entity, graphics: &mut Graphics) {
+        Texture::render_tinted(graphics, image, sized_rect(e.position, e.scale), tint);
     }
 }
 

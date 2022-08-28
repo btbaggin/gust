@@ -145,7 +145,9 @@ pub enum Actions {
     Left,
     Right,
     Accept,
-    Quit,
+    Cancel,
+    GetTower,
+    Place,
     Slower,
     Faster,
 }
@@ -199,7 +201,6 @@ pub fn gather(input: &mut Input, position: V2) {
         use winapi::um::winuser::GetKeyboardState;
         unsafe { GetKeyboardState(&mut input.input as *mut u8); }
     }
-    //TODO mouse buttons
 }
 
 pub fn load_input_settings(input: &mut Input, settings: &SettingsFile) {
@@ -213,8 +214,10 @@ pub fn load_input_settings(input: &mut Input, settings: &SettingsFile) {
     add_action_from_settings(input, settings, SettingNames::ActionRight, Actions::Right);
     add_action_from_settings(input, settings, SettingNames::ActionUp, Actions::Up);
     add_action_from_settings(input, settings, SettingNames::ActionDown, Actions::Down);
-    add_action_from_settings(input, settings, SettingNames::ActionQuit, Actions::Quit);
+    add_action_from_settings(input, settings, SettingNames::ActionCancel, Actions::Cancel);
     input.map.insert(Actions::Slower, Key::Minus);
     input.map.insert(Actions::Faster, Key::Plus);
     input.map.insert(Actions::Accept, Key::Enter);
+    input.map.insert(Actions::GetTower, Key::F1);
+    input.map.insert(Actions::Place, Key::MouseLeft);
 }

@@ -4,7 +4,8 @@ pub use message_bus::{MessageBus, SharedMessageBus};
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum MessageKind {
-    EnemyGotToEnd
+    EnemyGotToEnd,
+    EnemyKilled,
 }
 
 

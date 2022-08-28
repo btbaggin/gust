@@ -70,8 +70,8 @@ fn create_window(event_loop: &EventLoop<()>,
     (context, GameWindow { renderer, size })
 }
 
-pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut input: Input, 
-                                    queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
+pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, target_frames: u32,
+                                    mut input: Input, queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
                                     mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = EventLoop::new();
@@ -84,6 +84,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
         .with_visible(true);
     let (context, mut window) = create_window(&el, builder);
 
+    let expected_seconds_per_frame = 1. / target_frames as f32;
     let mut last_time = Instant::now();
     let mut mouse_position = crate::V2::new(0., 0.);
 
@@ -137,7 +138,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                     handler.on_stop();
                 }
 
-                unsafe { crate::physics::step_physics(0.2); } //TODO don't hardcode time, need to calculate from target fps
+                unsafe { crate::physics::step_physics(expected_seconds_per_frame); }
 
                 let size = PhysicalSize::new(window.size.width, window.size.height);
                 window.renderer.draw_frame(|graphics| {
@@ -147,12 +148,24 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, mut i
                 context.swap_buffers().unwrap();
 
                 // TODO skip on frame end if game is running slow
+
                 handler.on_frame_end();
                 let entity_manager = crate::entity::entity_manager();
                 let mut m = message_bus.borrow_mut();
                 entity_manager.dispose_entities(&mut m);
+                sleep_until_frame_end(now, expected_seconds_per_frame);
             },
             _ => {}
         }
     });
+}
+
+fn sleep_until_frame_end(start: Instant, expected_seconds_per_frame: f32) {
+    let now = Instant::now();
+	let update_seconds = (now - start).as_secs_f32();
+
+	if  update_seconds < expected_seconds_per_frame {
+        let sleep_time = expected_seconds_per_frame - update_seconds;
+        std::thread::sleep(std::time::Duration::from_secs_f32(sleep_time));
+	}
 }

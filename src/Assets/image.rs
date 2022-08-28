@@ -17,17 +17,23 @@ impl Texture {
     pub fn new(image: Rc<ImageHandle>, bounds: Option<Rectangle>) -> Texture {
         Texture { image, bounds }
     }
-    pub fn draw(&self, graphics: &mut Graphics, rect: Rectangle) {
+    fn draw(&self, graphics: &mut Graphics, rect: Rectangle, tint: speedy2d::color::Color) {
         if let Some(b) = &self.bounds {
-            graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, b.clone(), &self.image);
+            graphics.draw_rectangle_image_subset_tinted(rect, tint, b.clone(), &self.image);
         } else {
-            graphics.draw_rectangle_image(rect, &self.image);
+            graphics.draw_rectangle_image_tinted(rect, tint, &self.image);
         }
     }
 
     pub fn render(graphics: &mut Graphics, image: Images, rect: Rectangle) {
         if let Some(image) = request_image(graphics, image) {
-            image.draw(graphics, rect)
+            image.draw(graphics, rect, speedy2d::color::Color::WHITE)
+        }
+    }
+
+    pub fn render_tinted(graphics: &mut Graphics, image: Images, rect: Rectangle, tint: speedy2d::color::Color) {
+        if let Some(image) = request_image(graphics, image) {
+            image.draw(graphics, rect, tint)
         }
     }
 }

@@ -5,6 +5,7 @@ use crate::messages::{Message, MessageHandler, MessageBus, SharedMessageBus, Mes
 use crate::assets::{Fonts};
 use crate::ui::Label;
 use crate::{V2U, V2};
+use crate::input::Actions;
 
 const MAX_HEALTH: u32 = 100;
 
@@ -39,6 +40,12 @@ impl SceneBehavior for Level {
     fn update(&mut self, state: &mut crate::UpdateState) -> SceneLoad {
         self.spawner.update(state.delta_time);
 
+        if state.action_pressed(&Actions::GetTower) {
+            let manager = crate::entity::entity_manager();
+            let tower = crate::gust::tower::Tower::new(10., 2, 2.);
+            manager.create(tower);
+        }
+
         if self.health == 0 { SceneLoad::Unload }
         else { SceneLoad::None }
     }
@@ -48,12 +55,14 @@ impl SceneBehavior for Level {
 }
 impl MessageHandler for Level {
     crate::handle_messages!(MessageKind::EnemyGotToEnd);
+    
     fn process(&mut self, message: &Message) { 
         match message.kind() {
             MessageKind::EnemyGotToEnd => {
                 self.health -= 10;
                 self.health_label = Label::new(self.health.to_string(), Fonts::Regular, 24.);
             }
+            _ => {},
         }
     }
 }

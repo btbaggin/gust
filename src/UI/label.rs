@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout};
 use crate::assets::{Fonts, request_font};
 use crate::Graphics;
