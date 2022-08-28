@@ -1,7 +1,7 @@
 use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions};
 use crate::gust::{player::Player, enemy::EnemySpawner, enemy::Wave, enemy::EnemyType};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Message, MessageHandler, MessageBus, SharedMessageBus, MessageKind};
+use crate::messages::{Message, MessageHandler, MessageBus, MessageKind};
 use crate::assets::{Fonts};
 use crate::ui::Label;
 use crate::{V2U, V2};

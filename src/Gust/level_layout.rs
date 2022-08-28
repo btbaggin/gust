@@ -44,9 +44,9 @@ impl LevelLayout {
 }
 impl crate::entity::EntityBehavior for LevelLayout {
     crate::entity!(LevelLayout);
-    fn initialize(&mut self, e: &mut EntityInitialization) { }
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) { }
-    fn render(&self, e: &Entity, graphics: &mut crate::Graphics) { }
+    fn initialize(&mut self, _e: &mut EntityInitialization) { }
+    fn update(&mut self, _e: &mut EntityUpdate, _state: &mut crate::UpdateState) { }
+    fn render(&self, _e: &Entity, _graphics: &mut crate::Graphics) { }
 }
 impl MessageHandler for LevelLayout {
     crate::handle_messages!();

@@ -5,7 +5,6 @@ pub type V2U = cgmath::Vector2<u32>;
 
 use speedy2d::color::Color;
 use glutin::dpi::PhysicalSize;
-use speedy2d::Graphics2D;
 use std::sync::Arc;
 use std::cell::RefCell;
 use logger::LogEntry;

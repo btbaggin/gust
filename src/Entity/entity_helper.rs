@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use crate::physics::{RigidBody, RigidBodyHandle, PhysicsMaterial, CollisionShape};
-use super::Entity;
 use crate::V2;
 
 pub struct EntityInitialization<'a> {

@@ -7,8 +7,8 @@ pub enum EnemyType {
 }
 
 use std::hash::Hash;
-use crate::{V2U, V2};
-use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityHandle};
+use crate::V2U;
+use crate::entity::{Entity, EntityInitialization, EntityUpdate};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
 use crate::messages::{MessageHandler, Message, MessageKind};
 use crate::graphics::{AnimationPlayer, SpriteSheetOrientation};

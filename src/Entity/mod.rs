@@ -1,4 +1,4 @@
-use crate::physics::{RigidBody, RigidBodyHandle, PhysicsMaterial, CollisionShape};
+use crate::physics::{RigidBody, RigidBodyHandle};
 use crate::assets::{Texture, Images};
 use crate::{math::sized_rect, V2, Graphics, UpdateState};
 
@@ -15,12 +15,6 @@ const MAX_ENTITIES: usize = 512;
 
 pub type EntityId = std::any::TypeId;
 pub type EntityHandle = GenerationalIndex;
-
-macro_rules! create_helper {
-    ($entity:ident) => {
-
-    };
-}
 
 pub struct Entity {
     pub position: crate::V2,
