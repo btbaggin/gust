@@ -88,6 +88,12 @@ impl RigidBody {
         self.force += force;
     }
 
+    pub unsafe fn notify_collision(&mut self, other: &RigidBody) {
+        let entity = &mut *self.entity;
+        let other = &*other.entity;
+        entity.notify_collision(other)
+    }
+
     pub fn destroy(handle: RigidBodyHandle) {
         let physics = super::physics();
         //TODO this doesnt work because indexes change

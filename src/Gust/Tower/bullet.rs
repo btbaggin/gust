@@ -1,5 +1,5 @@
 use crate::V2;
-use crate::entity::{Entity, EntityInitialization, EntityUpdate};
+use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
 use crate::messages::{MessageHandler, Message};
 use crate::gust::PhysicsLayers;
@@ -20,7 +20,7 @@ impl Bullet {
         }
     }
 }
-impl crate::entity::EntityBehavior for Bullet {
+impl EntityBehavior for Bullet {
     crate::entity!(Bullet);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
@@ -35,6 +35,11 @@ impl crate::entity::EntityBehavior for Bullet {
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         graphics.draw_circle(from_v2(e.position), e.scale.x, speedy2d::color::Color::WHITE);
+    }
+    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) {
+        if crate::entity_is_type!(other, crate::gust::enemy::Enemy) {
+            //TODO e.destroy();
+        }
     }
 }
 impl MessageHandler for Bullet {

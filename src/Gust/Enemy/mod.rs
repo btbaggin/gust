@@ -8,7 +8,7 @@ pub enum EnemyType {
 
 use std::hash::Hash;
 use crate::V2U;
-use crate::entity::{Entity, EntityInitialization, EntityUpdate};
+use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
 use crate::messages::{MessageHandler, Message, MessageKind};
 use crate::graphics::{AnimationPlayer, SpriteSheetOrientation};
@@ -44,7 +44,7 @@ impl Enemy {
         }
     }
 }
-impl crate::entity::EntityBehavior for Enemy {
+impl EntityBehavior for Enemy {
     crate::entity!(Enemy);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
@@ -62,6 +62,7 @@ impl crate::entity::EntityBehavior for Enemy {
 
         e.set_position(layout.get_position(self.progress));
         self.animation.update(state);
+        self.health_bar.update(state.delta_time);
         self.progress += state.delta_time * 0.1;
 
         if self.progress >= 1. {
@@ -72,6 +73,15 @@ impl crate::entity::EntityBehavior for Enemy {
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         self.animation.render(graphics, crate::math::sized_rect(e.position, e.scale));
         self.health_bar.render(e.position, graphics);
+    }
+    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) {
+        if crate::entity_is_type!(other, crate::gust::tower::Bullet) {
+            self.health -= u32::min(self.health, 10);
+            self.health_bar.set_value(self.health);
+            if self.health == 0 {
+                e.destroy();
+            }
+        }
     }
 }
 impl MessageHandler for Enemy {

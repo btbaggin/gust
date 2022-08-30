@@ -5,6 +5,13 @@ mod tween;
 pub use timer::{FrameTimer, Timer};
 
 #[macro_export]
+macro_rules! entity_is_type {
+    ($entity:ident, $ty:ty) => {
+        $entity.id() == std::any::TypeId::of::<$ty>()
+    }
+}
+
+#[macro_export]
 macro_rules! unsafe_read_type {
     ($ty:ty, $file:expr, $index:expr) => {{
         let mut config: $ty = unsafe { std::mem::zeroed() };
@@ -19,7 +26,6 @@ macro_rules! unsafe_read_type {
         config
         }};
 }
-pub use unsafe_read_type;
 
 pub fn init_optional_array_to_blank<T, const C: usize>() -> [Option<T>; C] {
     let mut data: [MaybeUninit<Option<T>>; C] = unsafe { MaybeUninit::uninit().assume_init() };

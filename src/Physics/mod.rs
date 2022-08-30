@@ -79,7 +79,7 @@ pub unsafe fn step_physics(delta_time: f32) {
 
             if a.inverse_mass + b.inverse_mass == 0. {
                 // both objects are static, no collision will occur
-            } else if a.colliding_layers & b.layer == 0 {
+            //} else if a.colliding_layers & b.layer == 0 {
                 // objects will not collide due to layers
             } else {
                 // objects will collide
@@ -129,6 +129,13 @@ pub unsafe fn step_physics(delta_time: f32) {
         let a = &mut *(bodies.get_unchecked_mut(c.body_a) as *mut _);
         let b = &mut *(bodies.get_unchecked_mut(c.body_b) as *mut _);
         c.manifold.positional_correction(a, b);
+    }
+
+    for c in &contacts {
+        let a: &mut RigidBody = &mut *(bodies.get_unchecked_mut(c.body_a) as *mut _);
+        let b: &mut RigidBody = &mut *(bodies.get_unchecked_mut(c.body_b) as *mut _);
+        a.notify_collision(b);
+        b.notify_collision(a);
     }
 
 	// Clear all forces

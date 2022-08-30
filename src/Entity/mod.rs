@@ -66,6 +66,16 @@ impl Entity {
         };
         self.behavior.update(&mut helper, state)
     }
+    pub fn notify_collision(&mut self, other: &Entity) {
+        let mut helper = EntityUpdate {
+            position: &mut self.position,
+            scale: &mut self.scale,
+            rotation: &mut self.rotation,
+            rigid_body: &mut self.rigid_body,
+            mark_for_destroy: &mut self.mark_for_destroy
+        };
+        self.behavior.on_collision(&mut helper, &other.behavior);
+    }
     pub fn as_any(&self) -> &dyn std::any::Any {
         self.behavior.as_any()
     }
@@ -86,6 +96,8 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
 
     fn update(&mut self, e: &mut EntityUpdate, update_state: &mut UpdateState);
     fn render(&self, e: &Entity, graphics: &mut Graphics);
+
+    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) { }
 
     fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
         Texture::render(graphics, image, sized_rect(e.position, e.scale));

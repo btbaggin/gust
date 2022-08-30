@@ -5,6 +5,7 @@ use crate::utils::Timer;
 use crate::input::Actions;
 
 mod bullet;
+pub use bullet::Bullet;
 
 enum TowerState {
     Placing,
