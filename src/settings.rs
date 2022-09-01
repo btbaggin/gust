@@ -36,11 +36,11 @@ pub enum SettingValue {
 }
 
 macro_rules! settings_enum {
-    (pub enum $name:ident {
+    ($vis:vis enum $name:ident {
         $($value:ident($display:expr) = $default:expr,)+
     }) => {
         #[derive(Copy, Clone)]
-        pub enum $name {
+        $vis enum $name {
             $($value,)+
         } 
 

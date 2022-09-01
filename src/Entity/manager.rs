@@ -1,29 +1,23 @@
 
  use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES, EntityId};
- use crate::entity::GenerationalArray;
+ use crate::generational_array::{GenerationalArray, Iter};
  use crate::messages::MessageBus;
  use crate::V2;
  use std::collections::HashMap;
  use std::any::TypeId;
 
-mod iter;
-pub use iter::Iter;
+// mod iter;
+// pub use iter::Iter;
 crate::singleton!(entity_manager: EntityManager = EntityManager::new());
 
 pub enum EntityCreationOptions {
     None,
     Tag,
-    Persist,
-}
-
-struct EntityStorage {
-    handle: EntityHandle,
-    persist: bool,
+    //TODO persist
 }
 
 pub struct EntityManager {
-    entities: GenerationalArray<MAX_ENTITIES, Entity>,
-    allocated: Vec<Option<EntityStorage>>,
+    entities: GenerationalArray<Entity, MAX_ENTITIES>,
     tags: HashMap<TypeId, EntityHandle>,
 }
 
@@ -32,7 +26,6 @@ impl EntityManager {
         EntityManager { 
             entities: GenerationalArray::new(),
             tags: HashMap::new(),
-            allocated: Vec::with_capacity(MAX_ENTITIES / 2), // Assume half utilization of max entities
         }
     }
 
@@ -51,42 +44,29 @@ impl EntityManager {
         let (handle, data) = self.entities.push(entity);
         data.initialize();
 
-        let persist = matches!(options, EntityCreationOptions::Persist);
-        let storage = EntityStorage { handle, persist, };
-        self.allocated.insert(handle.index, Some(storage));
-
         match options {
-            EntityCreationOptions::Tag | EntityCreationOptions::Persist => { self.tags.insert(id, handle); },
+            EntityCreationOptions::Tag => { self.tags.insert(id, handle); },
             _ => {},
         }
         handle
     }
 
     pub fn iter_handles(&self) -> Vec<EntityHandle> {
-        self.allocated
-            .iter()
-            .filter(|e| e.is_some())
-            .map(|e| e.as_ref().unwrap().handle)
-            .collect()
+        self.entities.iter_index()
     }
-
-    pub fn iter(&self) -> iter::Iter {
-        iter::Iter::new(self)
+    pub fn iter(&self) -> Iter<Entity, MAX_ENTITIES> {
+        self.entities.iter()
     }
 
     pub fn dispose_entities(&mut self, messages: &mut MessageBus) {
-        for i in 0..self.allocated.len() {
-            let handle = &self.allocated[i];
-            if let Some(e) = handle {
-                let entity = self.get(&e.handle).unwrap();
-                if entity.mark_for_destroy {
-                    if let Some(r) = entity.rigid_body {
-                        crate::physics::RigidBody::destroy(r);
-                    }
-                    entity.behavior.unregister(messages);
-                    self.entities.remove(&e.handle);
-                    self.allocated[i] = None;
+        for h in self.iter_handles() {
+            let entity = self.get(&h).unwrap();
+            if entity.mark_for_destroy {
+                if let Some(r) = entity.rigid_body {
+                    crate::physics::RigidBody::destroy(r);
                 }
+                entity.behavior.unregister(messages);
+                self.entities.remove(&h);
             }
         }
     }

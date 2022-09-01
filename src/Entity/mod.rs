@@ -2,19 +2,17 @@ use crate::physics::{RigidBody, RigidBodyHandle};
 use crate::assets::{Texture, Images};
 use crate::{math::sized_rect, V2, Graphics, UpdateState};
 
-mod generational_array;
 mod scene;
 mod manager;
 mod entity_helper;
-pub use generational_array::{GenerationalArray, GenerationalIndex};
 pub use self::scene::{SceneBehavior, SceneLoad, Scene};
 pub use manager::{EntityManager, entity_manager, EntityCreationOptions};
 pub use entity_helper::{EntityInitialization, EntityUpdate};
 
-const MAX_ENTITIES: usize = 512;
+pub const MAX_ENTITIES: usize = 512;
 
 pub type EntityId = std::any::TypeId;
-pub type EntityHandle = GenerationalIndex;
+pub type EntityHandle = crate::generational_array::GenerationalIndex;
 
 pub struct Entity {
     pub position: crate::V2,
@@ -44,14 +42,14 @@ impl Entity {
             rotation: &mut self.rotation,
             material: None,
             shape: None,
-            layer: None,
-            colliding_layers: None,
+            layer: 1,
+            colliding_layers: 1,
         };
         self.behavior.initialize(&mut helper);
         
         if let Some(material) = helper.material {
-            let layer = helper.layer.or(Some(1)).unwrap();
-            let colliding_layers = helper.colliding_layers.or(Some(1)).unwrap();
+            let layer = helper.layer;
+            let colliding_layers = helper.colliding_layers;
             let rigid_body = RigidBody::attach(self_pointer, material, helper.shape.unwrap(), layer, colliding_layers);
             self.rigid_body = Some(rigid_body);
         }
@@ -97,7 +95,7 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
     fn update(&mut self, e: &mut EntityUpdate, update_state: &mut UpdateState);
     fn render(&self, e: &Entity, graphics: &mut Graphics);
 
-    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) { }
+    fn on_collision(&mut self, _e: &mut EntityUpdate, _other: &Box<dyn EntityBehavior>) { }
 
     fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
         Texture::render(graphics, image, sized_rect(e.position, e.scale));

@@ -5,8 +5,10 @@ mod level_layout;
 mod tower;
 pub mod main_menu;
 
-#[repr(u8)]
-pub enum PhysicsLayers {
-    Enemy = 1,
-    Player = 2,
+crate::physics_layer_enum! {
+    pub enum PhysicsLayers {
+        Enemy = 1,
+        Player = 2,
+        Bullet = 4,
+    }
 }

@@ -27,6 +27,7 @@ mod messages;
 mod math;
 mod ui;
 mod update_state;
+mod generational_array;
 pub use graphics::Graphics;
 pub use update_state::UpdateState;
 

@@ -26,7 +26,8 @@ impl EntityBehavior for Bullet {
     fn initialize(&mut self, e: &mut EntityInitialization) {
         e.set_scale(10., 10.)
          .attach_rigid_body(PhysicsMaterial::METAL, CollisionShape::Circle(Circle::new(10.)))
-         .collides_with(PhysicsLayers::Enemy as u8);
+         .collision_layer(PhysicsLayers::Bullet)
+         .collides_with(PhysicsLayers::Enemy);
         self.vector = (self.vector - e.position()).normalize() * self.speed;
     }
 
@@ -38,7 +39,7 @@ impl EntityBehavior for Bullet {
     }
     fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) {
         if crate::entity_is_type!(other, crate::gust::enemy::Enemy) {
-            //TODO e.destroy();
+            e.destroy();
         }
     }
 }

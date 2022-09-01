@@ -8,8 +8,8 @@ pub struct EntityInitialization<'a> {
     pub(super) rotation: &'a mut f32, // radians
     pub(super) material: Option<PhysicsMaterial>,
     pub(super) shape: Option<CollisionShape>,
-    pub(super) layer: Option<u8>,
-    pub(super) colliding_layers: Option<u8>,
+    pub(super) layer: u8,
+    pub(super) colliding_layers: u8,
 }
 impl<'a> EntityInitialization<'a> {
     pub fn attach_rigid_body(&mut self, material: PhysicsMaterial, shape: CollisionShape) -> &mut EntityInitialization<'a> { 
@@ -17,12 +17,12 @@ impl<'a> EntityInitialization<'a> {
         self.shape = Some(shape);
         self
     }
-    pub fn collision_layer(&mut self, layer: u8) -> &mut EntityInitialization<'a> {
-        self.layer = Some(layer);
+    pub fn collision_layer(&mut self, layer: impl std::convert::Into<u8>) -> &mut EntityInitialization<'a> {
+        self.layer = layer.into();
         self
     }
-    pub fn collides_with(&mut self, layer: u8) -> &mut EntityInitialization<'a> {
-        self.colliding_layers = Some(layer);
+    pub fn collides_with(&mut self, layer: impl std::convert::Into<u8>) -> &mut EntityInitialization<'a> {
+        self.colliding_layers |= layer.into();
         self
     }
     pub fn position(&self) -> V2 { *self.position }

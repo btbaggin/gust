@@ -17,7 +17,7 @@ impl PhysicsMaterial {
     }
 }
 
-pub type RigidBodyHandle = usize;
+pub type RigidBodyHandle = crate::generational_array::GenerationalIndex;
 pub struct RigidBody {
     pub(super) entity: *mut Entity,
     
@@ -70,9 +70,7 @@ impl RigidBody {
             shape,
         };
         let physics = super::physics();
-        physics.bodies.push(body);
-
-        physics.bodies.len() - 1
+        physics.bodies.push(body).0
     }
 
     pub fn apply_impulse(&mut self, impulse: V2, contact: V2) {
@@ -96,13 +94,12 @@ impl RigidBody {
 
     pub fn destroy(handle: RigidBodyHandle) {
         let physics = super::physics();
-        //TODO this doesnt work because indexes change
-        let _ = &mut physics.bodies.remove(handle);
+        physics.bodies.remove(&handle);
     }
 
     pub fn get(handle: RigidBodyHandle) -> &'static mut RigidBody {
         let physics = super::physics();
-        &mut physics.bodies[handle]
+        physics.bodies.get_mut(&handle).unwrap()
     }
 }
 

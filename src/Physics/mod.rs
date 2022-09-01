@@ -9,12 +9,31 @@ mod collision;
 pub use collision_shape::{CollisionShape, Circle, Polygon};
 pub use rigid_body::{PhysicsMaterial, RigidBody, RigidBodyHandle};
 use manifold::{Manifold, ManifoldHandle};
+use crate::generational_array::GenerationalArray;
+use crate::entity::MAX_ENTITIES;
 
-crate::singleton!(physics: Physics = Physics { bodies: vec!(), gravity: V2::new(0., 0.) });
+crate::singleton!(physics: Physics = Physics { bodies: GenerationalArray::new(), gravity: V2::new(0., 0.) });
 pub const PHYSICS_ITERATIONS: u8 = 10;
 
+#[macro_export]
+macro_rules! physics_layer_enum {
+    ($vis:vis enum $name:ident {
+        $($key:ident = $value:expr,)+
+    }) => {
+        #[repr(u8)]
+        $vis enum $name {
+            $($key = $value,)+
+        }
+        impl std::convert::Into<u8> for $name {
+            fn into(self) -> u8 {
+                self as u8
+            }
+        }
+    }
+}
+
 pub struct Physics {
-    bodies: Vec<RigidBody>,
+    bodies: GenerationalArray<RigidBody, MAX_ENTITIES>,
     gravity: V2,
 }
 
@@ -71,75 +90,82 @@ pub unsafe fn step_physics(delta_time: f32) {
 	let mut contacts = vec!();
     let mut i = 0;
     while i < bodies.len() {
-        let a = &bodies[i];
+        if let Some(a) = bodies.get_at(i) {
 
-        let mut j = i + 1;
-        while j < bodies.len() {
-            let b = &bodies[j];
+            let mut j = i + 1;
+            while j < bodies.len() {
+                if let Some(b) = bodies.get_at(j) {
 
-            if a.inverse_mass + b.inverse_mass == 0. {
-                // both objects are static, no collision will occur
-            //} else if a.colliding_layers & b.layer == 0 {
-                // objects will not collide due to layers
-            } else {
-                // objects will collide
-                let manifold = solve_manifold(a, b);
-                if manifold.contact_count > 0 {
-                    let handle = ManifoldHandle {
-                        body_a: i,
-                        body_b: j,
-                        manifold,
-                    };
-                    contacts.push(handle);
+                    if a.inverse_mass + b.inverse_mass == 0. {
+                        // both objects are static, no collision will occur
+                    } else if a.colliding_layers & b.layer == 0 {
+                        // objects will not collide due to layers
+                    } else {
+                        // objects will collide
+                        let manifold = solve_manifold(a, b);
+                        if manifold.contact_count > 0 {
+                            let handle = ManifoldHandle {
+                                body_a: i,
+                                body_b: j,
+                                manifold,
+                            };
+                            contacts.push(handle);
+                        }
+                    }
                 }
+
+                j += 1;
             }
-            j += 1;
         }
         i += 1;
     }
 
 	// Integrate forces
-	for b in bodies.iter_mut() {
+	for b in bodies.iter_index() {
+        let b = bodies.get_mut(&b).unwrap();
 		integrate_forces(b, physics.gravity, delta_time);
     }
 
 	// Initialize collision
 	for c in &mut contacts {
-        let a = &bodies[c.body_a];
-        let b = &bodies[c.body_b];
+        let a = &bodies.get_at(c.body_a).unwrap();
+        let b = &bodies.get_at(c.body_b).unwrap();
 		c.manifold.initialize(delta_time, physics.gravity, a, b);
     }
 
 	// Solve collisions
 	for _ in 0..PHYSICS_ITERATIONS {
 		for c in &contacts {
-            let a = &mut *(bodies.get_unchecked_mut(c.body_a) as *mut _);
-            let b = &mut *(bodies.get_unchecked_mut(c.body_b) as *mut _);
+            let a = &mut *(bodies.get_at_mut(c.body_a).unwrap() as *mut _);
+            let b = &mut *(bodies.get_at_mut(c.body_b).unwrap() as *mut _);
             c.manifold.apply_impulse(a, b);
         }
     }
 
 	// Integrate velocities
-    for b in bodies.iter_mut() {
+    for b in bodies.iter_index() {
+        let b = bodies.get_mut(&b).unwrap();
         integrate_velocity(b, physics.gravity, delta_time);
     }
 
 	// Correct positions
     for c in &contacts {
-        let a = &mut *(bodies.get_unchecked_mut(c.body_a) as *mut _);
-        let b = &mut *(bodies.get_unchecked_mut(c.body_b) as *mut _);
+        let a = &mut *(bodies.get_at_mut(c.body_a).unwrap() as *mut _);
+        let b = &mut *(bodies.get_at_mut(c.body_b).unwrap() as *mut _);
         c.manifold.positional_correction(a, b);
     }
 
+    //Notify entities of collision
     for c in &contacts {
-        let a: &mut RigidBody = &mut *(bodies.get_unchecked_mut(c.body_a) as *mut _);
-        let b: &mut RigidBody = &mut *(bodies.get_unchecked_mut(c.body_b) as *mut _);
+        let a: &mut RigidBody = &mut *(bodies.get_at_mut(c.body_a).unwrap() as *mut _);
+        let b: &mut RigidBody = &mut *(bodies.get_at_mut(c.body_b).unwrap() as *mut _);
         a.notify_collision(b);
         b.notify_collision(a);
     }
 
 	// Clear all forces
-    for b in bodies.iter_mut() {
+    for b in bodies.iter_index() {
+        let mut b = bodies.get_mut(&b).unwrap();
 		b.force = V2::new(0., 0.);
 		b.torque = 0.;
 	}

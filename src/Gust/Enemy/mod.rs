@@ -51,8 +51,8 @@ impl EntityBehavior for Enemy {
         let shape = CollisionShape::Circle(Circle::new(35.));
         e.set_scale(75., 75.)
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
-         .collision_layer(PhysicsLayers::Enemy as u8)
-         .collides_with(PhysicsLayers::Player as u8);
+         .collision_layer(PhysicsLayers::Enemy)
+         .collides_with(PhysicsLayers::Player as u8 | PhysicsLayers::Bullet as u8);
         self.animation.play(SlimeAnimation::Idle);
     }
 

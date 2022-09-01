@@ -20,8 +20,8 @@ impl crate::entity::EntityBehavior for Player {
         // let shape = CollisionShape::Polygon(Polygon::rectangle(50., 50., V2::new(0., 0.)));
         e.set_position(V2::new(200., 200.))
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
-         .collision_layer(PhysicsLayers::Player as u8)
-         .collides_with(PhysicsLayers::Enemy as u8)
+         .collision_layer(PhysicsLayers::Player)
+         .collides_with(PhysicsLayers::Enemy)
          .set_scale(50., 50.)
          .set_rotation(0.);
     }
