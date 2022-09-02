@@ -5,9 +5,16 @@ mod tween;
 pub use timer::{FrameTimer, Timer};
 
 #[macro_export]
-macro_rules! entity_is_type {
+macro_rules! entity_as {
     ($entity:ident, $ty:ty) => {
-        $entity.id() == std::any::TypeId::of::<$ty>()
+        $entity.as_any().downcast_ref::<$ty>()
+    }
+}
+
+#[macro_export]
+macro_rules! entity_as_mut {
+    ($entity:ident, $ty:ty) => {
+        entity.as_any_mut().downcast_mut::<$ty>()
     }
 }
 

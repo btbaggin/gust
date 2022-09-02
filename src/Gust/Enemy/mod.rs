@@ -43,6 +43,11 @@ impl Enemy {
             animation
         }
     }
+
+    fn take_damage(&mut self, damage: u32) {
+        self.health -= u32::min(self.health, damage);
+        self.health_bar.set_value(self.health);
+    }
 }
 impl EntityBehavior for Enemy {
     crate::entity!(Enemy);
@@ -74,11 +79,11 @@ impl EntityBehavior for Enemy {
         self.animation.render(graphics, crate::math::sized_rect(e.position, e.scale));
         self.health_bar.render(e.position, graphics);
     }
-    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) {
-        if crate::entity_is_type!(other, crate::gust::tower::Bullet) {
-            self.health -= u32::min(self.health, 10);
-            self.health_bar.set_value(self.health);
+    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>, messages: &mut crate::messages::MessageBus) {
+        if let Some(b) = crate::entity_as!(other, crate::gust::tower::Bullet) {
+           self.take_damage(b.damage());
             if self.health == 0 {
+                messages.send(MessageKind::EnemyKilled);
                 e.destroy();
             }
         }

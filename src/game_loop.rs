@@ -2,6 +2,7 @@ use std::time::Instant;
 use std::rc::Rc;
 use std::cell::RefCell;
 use speedy2d::*;
+use speedy2d::{shape::Rectangle, dimen::Vector2};
 use glutin::dpi::PhysicalSize;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
@@ -11,6 +12,7 @@ use crate::entity::{SceneBehavior, Scene};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::MessageBus;
 use crate::graphics::Graphics;
+use crate::physics::QuadTree;
 
 pub trait WindowHandler {
     // fn on_start(&mut self) { }
@@ -70,18 +72,21 @@ fn create_window(event_loop: &EventLoop<()>,
     (context, GameWindow { renderer, size })
 }
 
-pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, target_frames: u32,
+pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)>, target_frames: u32,
                                     mut input: Input, queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
                                     mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = EventLoop::new();
 
     let monitor = el.primary_monitor();
-    let fullscreen = if fullscreen { Some(Fullscreen::Borderless(monitor)) } else { None };
     let builder = WindowBuilder::new()
         .with_title(title)  
-        .with_fullscreen(fullscreen)
         .with_visible(true);
+    let builder = match size {
+        Some(s) => builder.with_inner_size(PhysicalSize::new(s.0, s.1)),
+        None => builder.with_fullscreen(Some(Fullscreen::Borderless(monitor))),
+    };
+
     let (context, mut window) = create_window(&el, builder);
 
     let expected_seconds_per_frame = 1. / target_frames as f32;
@@ -90,7 +95,8 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, targe
 
     let message_bus = Rc::new(RefCell::new(MessageBus::new()));
 
-    let mut scene = crate::entity::Scene::new(scene);
+    let bounds = Rectangle::from_tuples((0., 0.), (window.size.width as f32, window.size.height as f32));
+    let mut scene = crate::entity::Scene::new(scene, bounds);
     scene.load(queue.clone(), message_bus.clone());
     
     el.run(move |event, _, control_flow| {
@@ -107,9 +113,10 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, targe
 
                 WindowEvent::Resized(physical_size) => {
                     window.size = PhysicalSize::new(physical_size.width, physical_size.height);
+                    scene.resize(Rectangle::from_tuples((0., 0.), (window.size.width as f32, window.size.height as f32)));
 
                     context.resize(physical_size);
-                    window.renderer.set_viewport_size_pixels(speedy2d::dimen::Vector2::new(physical_size.width, physical_size.height));
+                    window.renderer.set_viewport_size_pixels(Vector2::new(physical_size.width, physical_size.height));
                     handler.on_resize(physical_size.width, physical_size.height);
                 },
                 WindowEvent::Focused(focused) => {
@@ -138,7 +145,8 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, targe
                     handler.on_stop();
                 }
 
-                unsafe { crate::physics::step_physics(expected_seconds_per_frame); }
+                let mut messages = message_bus.borrow_mut();
+                unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
                 let size = PhysicalSize::new(window.size.width, window.size.height);
                 window.renderer.draw_frame(|graphics| {
@@ -146,13 +154,14 @@ pub(crate) fn create_game_window<H>(title: &'static str, fullscreen: bool, targe
                     handler.on_render(&mut graphics, &scene, delta_time, size);
                 });
                 context.swap_buffers().unwrap();
-
+                
                 // TODO skip on frame end if game is running slow
-
                 handler.on_frame_end();
+                
                 let entity_manager = crate::entity::entity_manager();
-                let mut m = message_bus.borrow_mut();
-                entity_manager.dispose_entities(&mut m);
+                entity_manager.dispose_entities(&mut messages);
+                scene.update_positions(entity_manager);
+
                 sleep_until_frame_end(now, expected_seconds_per_frame);
             },
             _ => {}

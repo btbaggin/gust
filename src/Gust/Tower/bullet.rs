@@ -19,6 +19,9 @@ impl Bullet {
             vector: target,
         }
     }
+    pub fn damage(&self) -> u32 {
+        self.damage
+    }
 }
 impl EntityBehavior for Bullet {
     crate::entity!(Bullet);
@@ -37,10 +40,8 @@ impl EntityBehavior for Bullet {
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         graphics.draw_circle(from_v2(e.position), e.scale.x, speedy2d::color::Color::WHITE);
     }
-    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>) {
-        if crate::entity_is_type!(other, crate::gust::enemy::Enemy) {
-            e.destroy();
-        }
+    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>, messages: &mut crate::messages::MessageBus) {
+        e.destroy();
     }
 }
 impl MessageHandler for Bullet {

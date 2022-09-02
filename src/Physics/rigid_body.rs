@@ -86,10 +86,10 @@ impl RigidBody {
         self.force += force;
     }
 
-    pub unsafe fn notify_collision(&mut self, other: &RigidBody) {
+    pub unsafe fn notify_collision(&mut self, other: &RigidBody, messages: &mut crate::messages::MessageBus) {
         let entity = &mut *self.entity;
         let other = &*other.entity;
-        entity.notify_collision(other)
+        entity.notify_collision(other, messages)
     }
 
     pub fn destroy(handle: RigidBodyHandle) {

@@ -28,6 +28,11 @@ impl Tower {
             state: TowerState::Placing
         }
     }
+
+    fn find_target(&mut self) -> V2 {
+        //TODO
+        V2::new(0., 0.)
+    }
 }
 impl crate::entity::EntityBehavior for Tower {
     crate::entity!(Tower);
@@ -56,8 +61,8 @@ impl crate::entity::EntityBehavior for Tower {
             },
             TowerState::Placed => {
                 if self.timer.update(state.delta_time) {
-                    //TODO shoot
-                    manager.create_at(bullet::Bullet::fire(1000., self.damage, V2::new(0., 0.)), e.position());
+                    let target = self.find_target();
+                    manager.create_at(bullet::Bullet::fire(1000., self.damage, target), e.position());
                 }
             }
         }

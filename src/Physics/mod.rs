@@ -6,6 +6,8 @@ mod rigid_body;
 mod collision_shape;
 mod manifold;
 mod collision;
+mod quad_tree;
+pub use quad_tree::QuadTree;
 pub use collision_shape::{CollisionShape, Circle, Polygon};
 pub use rigid_body::{PhysicsMaterial, RigidBody, RigidBodyHandle};
 use manifold::{Manifold, ManifoldHandle};
@@ -82,7 +84,7 @@ unsafe fn integrate_velocity(body: &mut RigidBody, gravity: V2, delta_time: f32)
 	integrate_forces(body, gravity, delta_time);
 }
 
-pub unsafe fn step_physics(delta_time: f32) {
+pub unsafe fn step_physics(delta_time: f32, messages: &mut crate::messages::MessageBus) {
     let physics = physics();
     let bodies = &mut physics.bodies;
 
@@ -159,8 +161,8 @@ pub unsafe fn step_physics(delta_time: f32) {
     for c in &contacts {
         let a: &mut RigidBody = &mut *(bodies.get_at_mut(c.body_a).unwrap() as *mut _);
         let b: &mut RigidBody = &mut *(bodies.get_at_mut(c.body_b).unwrap() as *mut _);
-        a.notify_collision(b);
-        b.notify_collision(a);
+        a.notify_collision(b, messages);
+        b.notify_collision(a, messages);
     }
 
 	// Clear all forces

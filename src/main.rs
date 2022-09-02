@@ -96,7 +96,7 @@ fn main() {
         is_playing: true,
     };
     game_loop::create_game_window("gust", 
-                                  false,
+                                  Some((640., 480.)),
                                   60,
                                   input,
                                   q,
