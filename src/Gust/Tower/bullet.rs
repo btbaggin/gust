@@ -34,13 +34,13 @@ impl EntityBehavior for Bullet {
         self.vector = (self.vector - e.position()).normalize() * self.speed;
     }
 
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) {
         e.alter_position(self.vector * state.delta_time);
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         graphics.draw_circle(from_v2(e.position), e.scale.x, speedy2d::color::Color::WHITE);
     }
-    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>, messages: &mut crate::messages::MessageBus) {
+    fn on_collision(&mut self, e: &mut EntityUpdate, _other: &Entity, _messages: &mut crate::messages::MessageBus) {
         e.destroy();
     }
 }

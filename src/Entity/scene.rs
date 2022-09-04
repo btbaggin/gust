@@ -24,9 +24,9 @@ impl Scene {
         }
     }
     
-    pub fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus) {
+    pub fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus, entities: &mut EntityManager) {
         let mut m = messages.borrow_mut();
-        self.behavior.load(queue, &mut m);
+        self.behavior.load(queue, &mut m, entities);
         self.behavior.register(&mut m)
     }
 
@@ -41,24 +41,25 @@ impl Scene {
         }
     }
 
-    pub fn update(&mut self, state: &mut crate::UpdateState, entities: &mut EntityManager) -> bool {
+    pub fn update(&mut self, state: &mut crate::UpdateState) -> bool {
         let load = self.behavior.update(state);
         
         match load {
             SceneLoad::Load(b) => { 
-                self.unload(entities, &state.message_bus);
+                self.unload(state.entities, &state.message_bus);
                 self.behavior = b;
-                self.load(state.queue.clone(), state.message_bus.clone());
+                self.load(state.queue.clone(), state.message_bus.clone(), state.entities);
                 true
              },
             SceneLoad::Unload => {
-                self.unload(entities, &state.message_bus);
+                self.unload(state.entities, &state.message_bus);
                 false
             },
             SceneLoad::None => { 
+                let entities = crate::entity::entity_manager();
                 for h in entities.iter_handles() {
                     let entity = entities.get_mut(&h).unwrap();
-                    entity.update(state);
+                    entity.update(state, &self.quad_tree);
                 }
                 let mut m = state.message_bus.borrow_mut();
                 m.process_messages();
@@ -90,7 +91,7 @@ impl Scene {
 }
 
 pub trait SceneBehavior: crate::messages::MessageHandler {
-    fn load(&mut self, queue: ThreadSafeJobQueue, messages: &mut MessageBus);
+    fn load(&mut self, queue: ThreadSafeJobQueue, messages: &mut MessageBus, entities: &mut EntityManager);
     fn unload(&mut self);
     fn update(&mut self, update_state: &mut UpdateState) -> SceneLoad;
     fn render(&self, graphics: &mut Graphics);

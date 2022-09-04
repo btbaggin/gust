@@ -1,37 +1,29 @@
 use std::mem::MaybeUninit;
+use crate::entity::Entity;
 
 mod timer;
 mod tween;
-pub use timer::{FrameTimer, Timer};
+pub use timer::Timer;
 
-#[macro_export]
-macro_rules! entity_as {
-    ($entity:ident, $ty:ty) => {
-        $entity.as_any().downcast_ref::<$ty>()
-    }
+
+pub fn entity_as<T: 'static>(entity: &Entity) -> Option<&T> {
+    entity.as_any().downcast_ref::<T>()
+}
+pub fn entity_as_mut<T: 'static>(entity: &mut Entity) -> Option<&mut T> {
+    entity.as_any_mut().downcast_mut::<T>()
 }
 
-#[macro_export]
-macro_rules! entity_as_mut {
-    ($entity:ident, $ty:ty) => {
-        entity.as_any_mut().downcast_mut::<$ty>()
+pub fn read_type<T>(file: &[u8], index: &mut usize) -> T {
+    let mut config: T = unsafe { std::mem::zeroed() };
+    let config_size = std::mem::size_of::<T>();
+    unsafe {
+        use std::io::Read;
+        let config_slice = std::slice::from_raw_parts_mut(&mut config as *mut _ as *mut u8, config_size);
+        let mut data_slice = &file[*index..];
+        data_slice.read_exact(config_slice).unwrap();
     }
-}
-
-#[macro_export]
-macro_rules! unsafe_read_type {
-    ($ty:ty, $file:expr, $index:expr) => {{
-        let mut config: $ty = unsafe { std::mem::zeroed() };
-        let config_size = std::mem::size_of::<$ty>();
-        unsafe {
-            use std::io::Read;
-            let config_slice = std::slice::from_raw_parts_mut(&mut config as *mut _ as *mut u8, config_size);
-            let mut data_slice = &$file[$index..];
-            data_slice.read_exact(config_slice).unwrap();
-        }
-        $index += config_size;
-        config
-        }};
+    *index += config_size;
+    config
 }
 
 pub fn init_optional_array_to_blank<T, const C: usize>() -> [Option<T>; C] {

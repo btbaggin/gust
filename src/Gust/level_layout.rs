@@ -1,5 +1,7 @@
 use crate::{V2, V2U};
 use cgmath::MetricSpace;
+use speedy2d::shape::Rectangle;
+use speedy2d::color::Color;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate};
 use crate::messages::{MessageHandler, Message};
 
@@ -45,8 +47,19 @@ impl LevelLayout {
 impl crate::entity::EntityBehavior for LevelLayout {
     crate::entity!(LevelLayout);
     fn initialize(&mut self, _e: &mut EntityInitialization) { }
-    fn update(&mut self, _e: &mut EntityUpdate, _state: &mut crate::UpdateState) { }
-    fn render(&self, _e: &Entity, _graphics: &mut crate::Graphics) { }
+    fn update(&mut self, _e: &mut EntityUpdate, _state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) { }
+    fn render(&self, _e: &Entity, graphics: &mut crate::Graphics) {
+        let size = graphics.screen_size;
+        graphics.draw_rectangle(Rectangle::from_tuples((0., 0.), (size.x as f32, size.y as f32)), Color::GREEN);
+
+        for i in 0..self.layout.len() - 1 {
+            let p1 = self.layout[i];
+            let p2 = self.layout[i + 1];
+
+            let rect = crate::math::sized_rect(p1, (p2 - p1) + V2::new(GRID_SIZE, GRID_SIZE));
+            graphics.draw_rectangle(rect, Color::YELLOW);
+        }
+    }
 }
 impl MessageHandler for LevelLayout {
     crate::handle_messages!();

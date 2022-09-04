@@ -54,7 +54,7 @@ impl Entity {
             self.rigid_body = Some(rigid_body);
         }
     }
-    pub fn update(&mut self, state: &mut UpdateState) {
+    pub fn update(&mut self, state: &mut UpdateState, scene: &crate::physics::QuadTree) {
         let mut helper = EntityUpdate {
             position: &mut self.position,
             scale: &mut self.scale,
@@ -62,7 +62,7 @@ impl Entity {
             rigid_body: &mut self.rigid_body,
             mark_for_destroy: &mut self.mark_for_destroy
         };
-        self.behavior.update(&mut helper, state)
+        self.behavior.update(&mut helper, state, scene)
     }
     pub fn notify_collision(&mut self, other: &Entity, messages: &mut crate::messages::MessageBus) {
         let mut helper = EntityUpdate {
@@ -72,7 +72,7 @@ impl Entity {
             rigid_body: &mut self.rigid_body,
             mark_for_destroy: &mut self.mark_for_destroy
         };
-        self.behavior.on_collision(&mut helper, &other.behavior, messages);
+        self.behavior.on_collision(&mut helper, other, messages);
     }
     pub fn as_any(&self) -> &dyn std::any::Any {
         self.behavior.as_any()
@@ -92,10 +92,10 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
 
     fn initialize(&mut self, e: &mut EntityInitialization);
 
-    fn update(&mut self, e: &mut EntityUpdate, update_state: &mut UpdateState);
+    fn update(&mut self, e: &mut EntityUpdate, update_state: &mut UpdateState, scene: &crate::physics::QuadTree);
     fn render(&self, e: &Entity, graphics: &mut Graphics);
 
-    fn on_collision(&mut self, _e: &mut EntityUpdate, _other: &Box<dyn EntityBehavior>, messages: &mut crate::messages::MessageBus) { }
+    fn on_collision(&mut self, _e: &mut EntityUpdate, _other: &Entity, _messages: &mut crate::messages::MessageBus) { }
 
     fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
         Texture::render(graphics, image, sized_rect(e.position, e.scale));

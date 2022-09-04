@@ -1,4 +1,4 @@
-use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions};
+use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions, EntityManager};
 use crate::gust::{player::Player, enemy::EnemySpawner, enemy::Wave, enemy::EnemyType};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::messages::{Message, MessageHandler, MessageBus, MessageKind};
@@ -24,21 +24,20 @@ impl Level {
     }
 }
 impl SceneBehavior for Level {
-    fn load(&mut self, _queue: ThreadSafeJobQueue, _messages: &mut MessageBus) {
-        let entity_manager = crate::entity::entity_manager();
+    fn load(&mut self, _queue: ThreadSafeJobQueue, _messages: &mut MessageBus, entities: &mut EntityManager) {    
         let player = Player::new();
-        entity_manager.create_options(player, EntityCreationOptions::Tag);
+        entities.create_options(player, EntityCreationOptions::Tag);
 
         self.spawner.add_wave(Wave::new(5, 0.5, EnemyType::Slime), 2.);
         self.spawner.add_wave(Wave::new(10, 1., EnemyType::Slime), 5.);
 
         let positions = vec!(V2U::new(0, 10), V2U::new(10, 10), V2U::new(10, 3), V2U::new(20, 3));
         let layout = crate::gust::level_layout::LevelLayout::new(positions);
-        entity_manager.create_options(layout, EntityCreationOptions::Tag);
+        entities.create_options(layout, EntityCreationOptions::Tag);
     }
     fn unload(&mut self) {}
     fn update(&mut self, state: &mut crate::UpdateState) -> SceneLoad {
-        self.spawner.update(state.delta_time);
+        self.spawner.update(state.delta_time, state.entities);
 
         if state.action_pressed(&Actions::GetTower) {
             let manager = crate::entity::entity_manager();
@@ -57,12 +56,9 @@ impl MessageHandler for Level {
     crate::handle_messages!(MessageKind::EnemyGotToEnd);
     
     fn process(&mut self, message: &Message) { 
-        match message.kind() {
-            MessageKind::EnemyGotToEnd => {
-                self.health -= 10;
-                self.health_label = Label::new(self.health.to_string(), Fonts::Regular, 24.);
-            }
-            _ => {},
+        if message.kind() == &MessageKind::EnemyGotToEnd {
+            self.health -= 10;
+            self.health_label = Label::new(self.health.to_string(), Fonts::Regular, 24.);
         }
     }
 }

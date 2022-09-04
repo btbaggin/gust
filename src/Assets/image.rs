@@ -140,28 +140,28 @@ pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
 }
 
 fn read_texture_atlas(path: &str) -> Vec<(String, Rectangle)> {
-    use crate::unsafe_read_type;
+    use crate::utils::read_type;
 
     let file = std::fs::read(path).log_and_panic();
     let mut index = 0;
-    let total_width = unsafe_read_type!(i32, file, index) as f32;
-    let total_height = unsafe_read_type!(i32, file, index) as f32;
-    let count = unsafe_read_type!(i32, file, index);
+    let total_width = read_type::<i32>(&file, &mut index) as f32;
+    let total_height = read_type::<i32>(&file, &mut index) as f32;
+    let count = read_type::<i32>(&file, &mut index);
 
     let mut result = vec!();
     for _ in 0..count {
         let mut name = String::from("");
         loop {
-            let c = unsafe_read_type!(u8, file, index);
+            let c = read_type::<u8>(&file, &mut index);
             if c == 0 || index >= file.len() { break; }
 
             name.push(c as char);
         }
 
-        let image_width = unsafe_read_type!(i32, file, index);
-        let image_height = unsafe_read_type!(i32, file, index);
-        let x = unsafe_read_type!(i32, file, index);
-        let y = unsafe_read_type!(i32, file, index);
+        let image_width = read_type::<i32>(&file, &mut index);
+        let image_height = read_type::<i32>(&file, &mut index);
+        let x = read_type::<i32>(&file, &mut index);
+        let y = read_type::<i32>(&file, &mut index);
 
         let width = (x + image_width) as f32 / total_width;
         let height = (y + image_height) as f32 / total_height;

@@ -20,7 +20,7 @@ impl MessageBus {
 
     pub fn process_messages(&mut self) {
         while let Some(m) = self.messages.pop_front() {
-            if let Some(recipients) = self.recipients.get_mut(&m.kind()) {
+            if let Some(recipients) = self.recipients.get_mut(m.kind()) {
                 for r in &mut recipients.iter() {
                     let handler: &mut dyn MessageHandler = unsafe { (*r).as_mut().expect("Message handler was not property remove from message bus") };
                     handler.process(&m);
@@ -35,8 +35,8 @@ impl MessageBus {
     }
 
     pub fn unregister(&mut self, handler: &impl MessageHandler, kind: MessageKind) {
-        if let Some(mut recipients) = self.recipients.get_mut(&kind) {
-            MessageBus::_unregister(handler, &mut recipients);
+        if let Some(recipients) = self.recipients.get_mut(&kind) {
+            MessageBus::_unregister(handler, recipients);
         }
     }
 

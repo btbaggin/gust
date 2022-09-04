@@ -1,5 +1,5 @@
 
- use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES, EntityId};
+ use super::{EntityBehavior, EntityHandle, Entity, MAX_ENTITIES};
  use crate::generational_array::{GenerationalArray, Iter};
  use crate::messages::MessageBus;
  use crate::V2;
@@ -44,10 +44,8 @@ impl EntityManager {
         let (handle, data) = self.entities.push(entity);
         data.initialize();
 
-        match options {
-            EntityCreationOptions::Tag => { self.tags.insert(id, handle); },
-            _ => {},
-        }
+        if let EntityCreationOptions::Tag = options { self.tags.insert(id, handle); }
+
         handle
     }
 
@@ -62,11 +60,15 @@ impl EntityManager {
         for h in self.iter_handles() {
             let entity = self.get(&h).unwrap();
             if entity.mark_for_destroy {
+                let id = entity.behavior.id();
                 if let Some(r) = entity.rigid_body {
                     crate::physics::RigidBody::destroy(r);
                 }
+
                 entity.behavior.unregister(messages);
                 self.entities.remove(&h);
+                self.tags.remove(&id);
+                
             }
         }
     }
@@ -76,59 +78,24 @@ impl EntityManager {
     pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Entity> {
         self.entities.get_mut(handle)
     }
-    pub fn find(&self, tag: EntityId) -> Option<&Entity> {
-        if let Some(handle) = self.tags.get(&tag) {
-            return self.entities.get(handle);
-        }
-        None
-    }
-    pub fn find_mut(&mut self, tag: EntityId) -> Option<&mut Entity> {
-        if let Some(handle) = self.tags.get(&tag) {
-            return self.entities.get_mut(handle);
-        }
-        None
-    }
-}
 
-#[macro_export]
-macro_rules! find_entity {
-    ($( $manager:ident ).+, $ty:ty) => {{
-        let mut typed_entity: Option<&$ty> = None;
-        let address = std::any::TypeId::of::<$ty>();
-        if let Some(entity) = $($manager.)+find(address) {
-            typed_entity = entity.as_any().downcast_ref::<$ty>();
+    pub fn find_as<T: 'static>(&self) -> Option<&T> {
+        let address = std::any::TypeId::of::<T>();
+
+        if let Some(handle) = self.tags.get(&address) {
+            let entity = self.entities.get(handle).unwrap();
+            return entity.as_any().downcast_ref::<T>();
         }
-        typed_entity
-    }};
-}
-#[macro_export]
-macro_rules! find_entity_mut {
-    ($( $manager:ident ).+, $ty:ty) => {{
-        let mut typed_entity: Option<&mut $ty> = None;
-        let address = std::any::TypeId::of::<$ty>();
-        if let Some(entity) = $($manager.)+find_mut(address) {
-            typed_entity = entity.as_any_mut().downcast_mut::<$ty>();
+        None
+    }
+
+    pub fn find_as_mut<T: 'static>(&mut self) -> Option<&T> {
+        let address = std::any::TypeId::of::<T>();
+        
+        if let Some(handle) = self.tags.get(&address) {
+            let entity = self.entities.get_mut(handle).unwrap();
+            return entity.as_any().downcast_ref::<T>();
         }
-        typed_entity
-    }};
-}
-#[macro_export]
-macro_rules! get_entity {
-    ($( $manager:ident ).+, $handle:ident, $ty:ty) => {{
-        let mut typed_entity: Option<&$ty> = None;
-        if let Some(entity) = $($manager.)+get(&$handle) {
-            typed_entity = entity.as_any().downcast_ref::<$ty>();
-        }
-        typed_entity
-    }};
-}
-#[macro_export]
-macro_rules! get_entity_mut {
-    ($( $manager:ident ).+, $handle:ident, $ty:ty) => {{
-        let mut typed_entity: Option<&mut $ty> = None;
-        if let Some(entity) = $($manager.)+get_mut(&$handle) {
-            typed_entity = entity.as_any_mut().downcast_mut::<$ty>();
-        }
-        typed_entity
-    }};
+        None
+    }
 }

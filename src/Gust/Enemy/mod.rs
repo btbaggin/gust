@@ -7,7 +7,7 @@ pub enum EnemyType {
 }
 
 use std::hash::Hash;
-use crate::V2U;
+use crate::{V2U, V2};
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
 use crate::messages::{MessageHandler, Message, MessageKind};
@@ -53,17 +53,16 @@ impl EntityBehavior for Enemy {
     crate::entity!(Enemy);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
-        let shape = CollisionShape::Circle(Circle::new(35.));
-        e.set_scale(75., 75.)
+        let shape = CollisionShape::Circle(Circle::new(28.));
+        e.set_scale(32., 32.)
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
          .collision_layer(PhysicsLayers::Enemy)
          .collides_with(PhysicsLayers::Player as u8 | PhysicsLayers::Bullet as u8);
         self.animation.play(SlimeAnimation::Idle);
     }
 
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
-        let manager = crate::entity::entity_manager();
-        let layout = crate::find_entity_mut!(manager, crate::gust::level_layout::LevelLayout).unwrap();
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) {
+        let layout = state.entities.find_as_mut::<crate::gust::level_layout::LevelLayout>().unwrap();
 
         e.set_position(layout.get_position(self.progress));
         self.animation.update(state);
@@ -77,10 +76,12 @@ impl EntityBehavior for Enemy {
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         self.animation.render(graphics, crate::math::sized_rect(e.position, e.scale));
-        self.health_bar.render(e.position, graphics);
+
+        let position = V2::new(e.position.x + e.scale.x / 2., e.position.y);
+        self.health_bar.render(position, graphics);
     }
-    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Box<dyn EntityBehavior>, messages: &mut crate::messages::MessageBus) {
-        if let Some(b) = crate::entity_as!(other, crate::gust::tower::Bullet) {
+    fn on_collision(&mut self, e: &mut EntityUpdate, other: &Entity, messages: &mut crate::messages::MessageBus) {
+        if let Some(b) = crate::utils::entity_as::<crate::gust::tower::Bullet>(other) {
            self.take_damage(b.damage());
             if self.health == 0 {
                 messages.send(MessageKind::EnemyKilled);

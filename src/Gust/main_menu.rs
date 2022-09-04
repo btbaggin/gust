@@ -1,4 +1,4 @@
-use crate::entity::{SceneBehavior, SceneLoad};
+use crate::entity::{SceneBehavior, SceneLoad, EntityManager};
 use crate::assets::{Sound, Sounds, SoundHandle, SoundStatus, Fonts};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::messages::{Message, MessageHandler, MessageBus};
@@ -20,7 +20,7 @@ impl MainMenu {
     }
 }
 impl SceneBehavior for MainMenu {
-    fn load(&mut self, queue: ThreadSafeJobQueue, _messages: &mut MessageBus) {
+    fn load(&mut self, queue: ThreadSafeJobQueue, _messages: &mut MessageBus, _entities: &mut EntityManager) {
         self.audio_handle = Some(Sound::play(&queue, Sounds::Piano));
         self.labels.push(Label::new(String::from("New Game"), Fonts::Regular, 64.));
         self.labels.push(Label::new(String::from("Settings"), Fonts::Regular, 64.));

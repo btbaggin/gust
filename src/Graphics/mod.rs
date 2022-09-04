@@ -8,6 +8,7 @@ pub use animation::{AnimationPlayer, SpriteSheetOrientation};
 pub struct Graphics<'a> {
     pub graphics: &'a mut Graphics2D,
     pub queue: ThreadSafeJobQueue,
+    pub screen_size: crate::V2U,
 }
 impl<'a> Deref for Graphics<'a> {
     type Target = Graphics2D;

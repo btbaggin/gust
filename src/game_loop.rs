@@ -8,16 +8,15 @@ use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{PossiblyCurrent, ContextWrapper};
-use crate::entity::{SceneBehavior, Scene};
+use crate::entity::{SceneBehavior, Scene, EntityManager};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::MessageBus;
 use crate::graphics::Graphics;
-use crate::physics::QuadTree;
 
 pub trait WindowHandler {
     // fn on_start(&mut self) { }
     fn on_update(&mut self, state: &mut crate::UpdateState, scene: &mut Scene) -> bool;
-    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, delta_time: f32, size: PhysicalSize<u32>);
+    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
     fn on_focus(&mut self, _: bool) { }
@@ -94,10 +93,11 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
     let mut mouse_position = crate::V2::new(0., 0.);
 
     let message_bus = Rc::new(RefCell::new(MessageBus::new()));
+    let entities = crate::entity::entity_manager();
 
     let bounds = Rectangle::from_tuples((0., 0.), (window.size.width as f32, window.size.height as f32));
     let mut scene = crate::entity::Scene::new(scene, bounds);
-    scene.load(queue.clone(), message_bus.clone());
+    scene.load(queue.clone(), message_bus.clone(), entities);
     
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -139,6 +139,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                     &input,
                     message_bus.clone(),
                     queue.clone(),
+                    entities,
                 );
                 if !handler.on_update(&mut state, &mut scene) {
                     *control_flow = ControlFlow::Exit;
@@ -148,19 +149,21 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                 let mut messages = message_bus.borrow_mut();
                 unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
-                let size = PhysicalSize::new(window.size.width, window.size.height);
                 window.renderer.draw_frame(|graphics| {
-                    let mut graphics = Graphics { graphics, queue: queue.clone() };
-                    handler.on_render(&mut graphics, &scene, delta_time, size);
+                    let mut graphics = Graphics {
+                        graphics,
+                        queue: queue.clone(),
+                        screen_size: crate::V2U::new(window.size.width, window.size.height)
+                    };
+                    handler.on_render(&mut graphics, &scene, entities);
                 });
                 context.swap_buffers().unwrap();
                 
                 // TODO skip on frame end if game is running slow
                 handler.on_frame_end();
                 
-                let entity_manager = crate::entity::entity_manager();
-                entity_manager.dispose_entities(&mut messages);
-                scene.update_positions(entity_manager);
+                entities.dispose_entities(&mut messages);
+                scene.update_positions(entities);
 
                 sleep_until_frame_end(now, expected_seconds_per_frame);
             },

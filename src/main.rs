@@ -4,7 +4,6 @@ pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
 
 use speedy2d::color::Color;
-use glutin::dpi::PhysicalSize;
 use std::sync::Arc;
 use std::cell::RefCell;
 use logger::LogEntry;
@@ -30,8 +29,10 @@ mod update_state;
 mod generational_array;
 pub use graphics::Graphics;
 pub use update_state::UpdateState;
+use crate::entity::EntityManager;
 
 /* TODO
+ * Pass entity manager through update
  */
 
 
@@ -43,19 +44,17 @@ struct GameState {
 }
 
 impl game_loop::WindowHandler for GameState {
-    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, _delta_time: f32, _size: PhysicalSize<u32>) {
+    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager) {
         graphics.clear_screen(Color::BLACK);
 
-        let entity_manager = crate::entity::entity_manager();
-        scene_manager.render(graphics, entity_manager);
+        scene_manager.render(graphics, entities);
     }
 
     fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool {
         settings::update_settings(&mut self.settings).log("Unable to load new settings");
         state.delta_time *= self.delta_time_scale;
         
-        let entity_manager = crate::entity::entity_manager();
-        self.is_playing = scene.update(state, entity_manager);
+        self.is_playing = scene.update(state);
 
         if state.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
         if state.action_pressed(&Actions::Faster) { self.delta_time_scale += 0.1; }

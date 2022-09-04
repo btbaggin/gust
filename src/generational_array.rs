@@ -84,7 +84,7 @@ impl<T: Sized, const C: usize> GenerationalArray<T, C> {
     }
 
     pub fn iter(&self) -> Iter<T, C> {
-        Iter::new(&self)
+        Iter::new(self)
     }
     pub fn iter_index(&self) -> Vec<GenerationalIndex> {
         let mut ret = vec!();
@@ -103,9 +103,9 @@ pub struct Iter<'a, T: Sized, const C: usize> {
     current: usize,
 }
 impl<'a, T: Sized, const C: usize> Iter<'a, T, C> {
-    pub fn new(manager: &'a GenerationalArray<T, C>) -> Iter<'a, T, C> {
+    pub fn new(array: &'a GenerationalArray<T, C>) -> Iter<'a, T, C> {
         Iter {
-            array: &manager,
+            array,
             current: 0
         }
     }

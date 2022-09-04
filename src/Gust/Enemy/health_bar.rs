@@ -24,10 +24,10 @@ impl HealthBar {
         }
     }
     pub fn render(&self, position: V2, graphics: &mut crate::Graphics) {
-        //TODO center
         let width = 50.;
+        let left = position.x - width / 2.;
         let current_width = self.current / self.max as f32 * width;
-        graphics.draw_rectangle(Rectangle::from_tuples((position.x, position.y), (position.x + width, position.y + 10.)), Color::RED);
-        graphics.draw_rectangle(Rectangle::from_tuples((position.x, position.y), (position.x + current_width, position.y + 10.)), Color::GREEN);
+        graphics.draw_rectangle(Rectangle::from_tuples((left, position.y), (left + width, position.y + 10.)), Color::RED);
+        graphics.draw_rectangle(Rectangle::from_tuples((left, position.y), (left + current_width, position.y + 10.)), Color::GREEN);
     }
 }

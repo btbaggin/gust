@@ -98,9 +98,9 @@ pub unsafe fn step_physics(delta_time: f32, messages: &mut crate::messages::Mess
             while j < bodies.len() {
                 if let Some(b) = bodies.get_at(j) {
 
-                    if a.inverse_mass + b.inverse_mass == 0. {
+                    if a.inverse_mass + b.inverse_mass == 0. || 
+                       a.colliding_layers & b.layer == 0 {
                         // both objects are static, no collision will occur
-                    } else if a.colliding_layers & b.layer == 0 {
                         // objects will not collide due to layers
                     } else {
                         // objects will collide

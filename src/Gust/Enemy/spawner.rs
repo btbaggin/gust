@@ -1,4 +1,5 @@
 use super::EnemyType;
+use crate::entity::EntityManager;
 use crate::utils::Timer;
 
 pub struct Wave {
@@ -17,14 +18,13 @@ impl Wave {
         }
     }
 
-    pub fn update(&mut self, delta_time: f32) {
+    pub fn update(&mut self, delta_time: f32, entities: &mut EntityManager) {
         if self.spawned_count == self.enemy_count {
             return;
         }
 
         if self.spawn_interval.update(delta_time) {
-            let manager = crate::entity::entity_manager();
-            manager.create(crate::gust::enemy::Enemy::new());
+            entities.create(crate::gust::enemy::Enemy::new());
             self.spawned_count += 1
         }
     }
@@ -51,7 +51,7 @@ impl EnemySpawner {
         self.intervals.push(spawn_start);
     }
 
-    pub fn update(&mut self, delta_time: f32) {
+    pub fn update(&mut self, delta_time: f32, entities: &mut EntityManager) {
         self.time_since_start += delta_time;
         for i in self.wave_index..self.intervals.len() {
             if self.time_since_start >= self.intervals[i] {
@@ -60,7 +60,7 @@ impl EnemySpawner {
         }
         
         for i in 0..self.wave_index + 1 {
-            self.waves[i].update(delta_time);
+            self.waves[i].update(delta_time, entities);
         }
     }
 }

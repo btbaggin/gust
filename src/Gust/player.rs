@@ -26,7 +26,7 @@ impl crate::entity::EntityBehavior for Player {
          .set_rotation(0.);
     }
 
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) {
         // if input.action_down(&Actions::Left) { e.alter_position(V2::new(-100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Right) { e.alter_position(V2::new(100. * delta_time, 0.)); }
         // if input.action_down(&Actions::Up) { e.alter_position(V2::new(0., -100. * delta_time)); }
