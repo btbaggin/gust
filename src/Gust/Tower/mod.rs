@@ -1,6 +1,6 @@
 use crate::V2;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityHandle};
-use crate::messages::{MessageHandler, Message};
+use crate::messages::{MessageHandler, Messages};
 use crate::utils::Timer;
 use crate::input::Actions;
 use cgmath::MetricSpace;
@@ -23,12 +23,12 @@ pub struct Tower {
     state: TowerState
 }
 impl Tower {
-    pub fn new(attack_speed: f32, damage: u32, build_time: f32) -> Tower {
+    pub fn new(attack_speed: f32, damage: u32, range: f32) -> Tower {
         Tower {
-            timer: Timer::new(build_time),
+            timer: Timer::new(2.), //build time
             attack_speed,
             damage,
-            range: 100.,
+            range,
             target: None,
             state: TowerState::Placing
         }
@@ -63,7 +63,7 @@ impl crate::entity::EntityBehavior for Tower {
     crate::entity!(Tower);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
-        e.set_scale(75., 75.);
+        e.set_scale(25., 25.);
     }
 
     fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, scene: &crate::physics::QuadTree) {
@@ -96,13 +96,13 @@ impl crate::entity::EntityBehavior for Tower {
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         match self.state {
-            TowerState::Placing => self.render_texture_tinted(crate::assets::Images::Testing, speedy2d::color::Color::BLUE, e, graphics),
-            TowerState::Building => self.render_texture_tinted(crate::assets::Images::Testing, speedy2d::color::Color::GREEN, e, graphics),
+            TowerState::Placing => self.render_texture_tinted(crate::assets::Images::Testing, speedy2d::color::Color::GRAY, e, graphics),
+            TowerState::Building => self.render_texture_tinted(crate::assets::Images::Testing, speedy2d::color::Color::RED, e, graphics),
             TowerState::Placed => self.render_texture(crate::assets::Images::Testing, e, graphics),
         }
     }
 }
 impl MessageHandler for Tower {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Message) {}
+    fn process(&mut self, _message: &Messages) {}
 }

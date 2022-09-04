@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout};
+use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout, shape::Rectangle};
 use crate::assets::{Fonts, request_font};
-use crate::Graphics;
+use crate::{V2, Graphics};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -16,8 +16,8 @@ impl Label {
         Label { text, font, size, layout: RefCell::new(None) }
     }
 
-    pub fn size(&self) -> f32 { self.size }
-    pub fn set_size(&mut self, size: f32) {
+    pub fn font_size(&self) -> f32 { self.size }
+    pub fn set_font_size(&mut self, size: f32) {
         self.size = size;
         self.layout.replace(None);
     }
@@ -35,5 +35,14 @@ impl Label {
             }
             graphics.draw_text(crate::math::from_v2(position), color, layout.as_ref().unwrap());
         }
+    }
+}
+impl super::UiElement for Label {
+    fn size(&self) -> V2 {
+        let layout = self.layout.borrow();
+        match &*layout {
+            Some(l) => V2::new(l.size().x, l.size().y),
+            None => V2::new(0., 0.),
+        }    
     }
 }

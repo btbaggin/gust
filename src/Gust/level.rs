@@ -1,25 +1,33 @@
 use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions, EntityManager};
 use crate::gust::{player::Player, enemy::EnemySpawner, enemy::Wave, enemy::EnemyType};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Message, MessageHandler, MessageBus, MessageKind};
+use crate::messages::{Messages, MessageHandler, MessageBus};
 use crate::assets::{Fonts};
-use crate::ui::Label;
+use crate::ui::{LabeledValue, UiElement, HorizontalAlignment};
 use crate::{V2U, V2};
 use crate::input::Actions;
 
 const MAX_HEALTH: u32 = 100;
 
+enum LevelStatus {
+    InProgress,
+    Success,
+    Fail
+}
+
 pub struct Level { 
     spawner: EnemySpawner,
-    health: u32,
-    health_label: Label
+    health: LabeledValue<u32>,
+    gold: LabeledValue<u32>,
+    status: LevelStatus,
 }
 impl Level {
     pub fn new() -> Level {
         Level { 
             spawner: EnemySpawner::new(),
-            health: MAX_HEALTH,
-            health_label: Label::new(MAX_HEALTH.to_string(), Fonts::Regular, 24.),
+            health: LabeledValue::new("Health", MAX_HEALTH, Fonts::Regular, 24.),
+            gold: LabeledValue::new("Gold", 0, Fonts::Regular, 24.),
+            status: LevelStatus::InProgress,
         }
     }
 }
@@ -40,25 +48,48 @@ impl SceneBehavior for Level {
         self.spawner.update(state.delta_time, state.entities);
 
         if state.action_pressed(&Actions::GetTower) {
-            let manager = crate::entity::entity_manager();
-            let tower = crate::gust::tower::Tower::new(10., 2, 2.);
-            manager.create(tower);
+            let tower = crate::gust::tower::Tower::new(10., 5, 200.);
+            state.entities.create(tower);
         }
 
-        if self.health == 0 { SceneLoad::Unload }
-        else { SceneLoad::None }
+        match self.status {
+            LevelStatus::InProgress => SceneLoad::None,
+            LevelStatus::Success => SceneLoad::Unload,
+            LevelStatus::Fail => SceneLoad::Unload,
+        }
     }
     fn render(&self, graphics: &mut crate::Graphics) {
-        self.health_label.render(graphics, V2::new(0., 0.), speedy2d::color::Color::WHITE)
+        self.health.render(graphics, V2::new(0., 0.), speedy2d::color::Color::WHITE);
+        
+        let x = self.gold.align_h(&graphics.screen_rect(), HorizontalAlignment::Right);
+        self.gold.render(graphics, V2::new(x, 0.), speedy2d::color::Color::WHITE);
     }
 }
 impl MessageHandler for Level {
-    crate::handle_messages!(MessageKind::EnemyGotToEnd);
+    crate::handle_messages!(Messages::EnemyGotToEnd(0), Messages::EnemyKilled);
     
-    fn process(&mut self, message: &Message) { 
-        if message.kind() == &MessageKind::EnemyGotToEnd {
-            self.health -= 10;
-            self.health_label = Label::new(self.health.to_string(), Fonts::Regular, 24.);
+    fn process(&mut self, message: &Messages) { 
+        match message {
+            Messages::EnemyGotToEnd(damage) => {
+                let current = self.health.value();
+                let damage = u32::min(*damage, current);
+                self.health.set_value(current - damage);
+
+                // This code needs to run unconditionally
+                let level_done = self.spawner.mark_enemy_dead();
+                if self.health.value() == 0 {
+                    self.status = LevelStatus::Fail
+                } else if level_done {
+                    self.status = LevelStatus::Success
+
+                }
+            }
+            Messages::EnemyKilled => {
+                self.gold.set_value(self.gold.value() + 10);
+                if self.spawner.mark_enemy_dead() {
+                    self.status = LevelStatus::Success
+                }
+            }
         }
     }
 }

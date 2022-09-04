@@ -150,11 +150,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                 unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
                 window.renderer.draw_frame(|graphics| {
-                    let mut graphics = Graphics {
-                        graphics,
-                        queue: queue.clone(),
-                        screen_size: crate::V2U::new(window.size.width, window.size.height)
-                    };
+                    let mut graphics = Graphics::new(graphics, queue.clone(), window.size);
                     handler.on_render(&mut graphics, &scene, entities);
                 });
                 context.swap_buffers().unwrap();

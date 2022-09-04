@@ -35,6 +35,8 @@ pub struct EnemySpawner {
     intervals: Vec<f32>,
     time_since_start: f32,
     wave_index: usize,
+    total_enemies: u32,
+    enemies_killed: u32,
 }
 impl EnemySpawner {
     pub fn new() -> EnemySpawner {
@@ -43,12 +45,21 @@ impl EnemySpawner {
             intervals: vec!(),
             time_since_start: 0.,
             wave_index: 0,
+            total_enemies: 0,
+            enemies_killed: 0,
         }
     }
 
     pub fn add_wave(&mut self, wave: Wave, spawn_start: f32) {
+        self.total_enemies += wave.enemy_count;
         self.waves.push(wave);
         self.intervals.push(spawn_start);
+    }
+
+    pub fn mark_enemy_dead(&mut self) -> bool {
+        self.enemies_killed += 1;
+        self.enemies_killed == self.total_enemies
+
     }
 
     pub fn update(&mut self, delta_time: f32, entities: &mut EntityManager) {

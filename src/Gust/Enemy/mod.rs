@@ -10,7 +10,7 @@ use std::hash::Hash;
 use crate::{V2U, V2};
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Message, MessageKind};
+use crate::messages::{MessageHandler, Messages};
 use crate::graphics::{AnimationPlayer, SpriteSheetOrientation};
 use crate::assets::Images;
 use crate::gust::PhysicsLayers;
@@ -70,7 +70,7 @@ impl EntityBehavior for Enemy {
         self.progress += state.delta_time * 0.1;
 
         if self.progress >= 1. {
-            state.send_message(MessageKind::EnemyGotToEnd);
+            state.send_message(Messages::EnemyGotToEnd(10));
             e.destroy();
         }
     }
@@ -84,7 +84,7 @@ impl EntityBehavior for Enemy {
         if let Some(b) = crate::utils::entity_as::<crate::gust::tower::Bullet>(other) {
            self.take_damage(b.damage());
             if self.health == 0 {
-                messages.send(MessageKind::EnemyKilled);
+                messages.send(Messages::EnemyKilled);
                 e.destroy();
             }
         }
@@ -92,5 +92,5 @@ impl EntityBehavior for Enemy {
 }
 impl MessageHandler for Enemy {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Message) {}
+    fn process(&mut self, _message: &Messages) {}
 }

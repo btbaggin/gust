@@ -1,8 +1,8 @@
 use crate::entity::{SceneBehavior, SceneLoad, EntityManager};
 use crate::assets::{Sound, Sounds, SoundHandle, SoundStatus, Fonts};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Message, MessageHandler, MessageBus};
-use crate::ui::Label;
+use crate::messages::{Messages, MessageHandler, MessageBus};
+use crate::ui::{Label, UiElement, HorizontalAlignment};
 use crate::input::Actions;
 
 pub struct MainMenu {
@@ -49,17 +49,20 @@ impl SceneBehavior for MainMenu {
         SceneLoad::None
     }
     fn render(&self, graphics: &mut crate::Graphics) {
-        let mut pos = crate::V2::new(0., 0.);
+        const PADDING: f32 = 10.;
+        let mut y = 0.;
 
         for (i, l) in self.labels.iter().enumerate() {
             let color = if self.selected_index == i { speedy2d::color::Color::RED } else { speedy2d::color::Color::WHITE };
-            l.render(graphics, pos, color);
-            pos.y += 100.;
+
+            let x = l.align_h(&graphics.screen_rect(), HorizontalAlignment::Center);
+            l.render(graphics, crate::V2::new(x, y), color);
+            y += l.size().y + PADDING;
         }
         
     }
 }
 impl MessageHandler for MainMenu {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Message) {}
+    fn process(&mut self, _message: &Messages) {}
 }

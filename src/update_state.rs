@@ -1,6 +1,6 @@
 use crate::V2;
 use crate::input::{Input, Actions};
-use crate::messages::{SharedMessageBus, MessageKind};
+use crate::messages::{SharedMessageBus, Messages};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::entity::EntityManager;
 
@@ -16,7 +16,7 @@ impl<'a> UpdateState<'a> {
                queue: ThreadSafeJobQueue, entities: &'a mut EntityManager) -> UpdateState<'a> {
         UpdateState { delta_time, input, message_bus, queue, entities }
     }
-    pub fn send_message(&self, kind: MessageKind) {
+    pub fn send_message(&self, kind: Messages) {
         let mut m = self.message_bus.borrow_mut();
         m.send(kind);
     }

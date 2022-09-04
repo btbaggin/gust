@@ -2,7 +2,7 @@ use crate::input::Actions;
 use crate::V2;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Message};
+use crate::messages::{MessageHandler, Messages};
 use crate::gust::PhysicsLayers;
 
 pub struct Player {
@@ -46,5 +46,5 @@ impl crate::entity::EntityBehavior for Player {
 }
 impl MessageHandler for Player {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Message) {}
+    fn process(&mut self, _message: &Messages) {}
 }

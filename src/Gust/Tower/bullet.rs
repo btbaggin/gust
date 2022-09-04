@@ -1,7 +1,7 @@
 use crate::V2;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Message};
+use crate::messages::{MessageHandler, Messages};
 use crate::gust::PhysicsLayers;
 use crate::math::from_v2;
 use cgmath::InnerSpace;
@@ -27,8 +27,8 @@ impl EntityBehavior for Bullet {
     crate::entity!(Bullet);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
-        e.set_scale(10., 10.)
-         .attach_rigid_body(PhysicsMaterial::METAL, CollisionShape::Circle(Circle::new(10.)))
+        e.set_scale(3., 3.)
+         .attach_rigid_body(PhysicsMaterial::METAL, CollisionShape::Circle(Circle::new(2.)))
          .collision_layer(PhysicsLayers::Bullet)
          .collides_with(PhysicsLayers::Enemy);
         self.vector = (self.vector - e.position()).normalize() * self.speed;
@@ -46,5 +46,5 @@ impl EntityBehavior for Bullet {
 }
 impl MessageHandler for Bullet {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Message) {}
+    fn process(&mut self, _message: &Messages) {}
 }

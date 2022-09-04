@@ -32,7 +32,7 @@ pub use update_state::UpdateState;
 use crate::entity::EntityManager;
 
 /* TODO
- * Pass entity manager through update
+ * Scene transitions
  */
 
 

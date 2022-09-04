@@ -3,7 +3,7 @@ use cgmath::MetricSpace;
 use speedy2d::shape::Rectangle;
 use speedy2d::color::Color;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate};
-use crate::messages::{MessageHandler, Message};
+use crate::messages::{MessageHandler, Messages};
 
 //TODO tile size based on screen size
 const GRID_SIZE: f32 = 32.;
@@ -49,8 +49,8 @@ impl crate::entity::EntityBehavior for LevelLayout {
     fn initialize(&mut self, _e: &mut EntityInitialization) { }
     fn update(&mut self, _e: &mut EntityUpdate, _state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) { }
     fn render(&self, _e: &Entity, graphics: &mut crate::Graphics) {
-        let size = graphics.screen_size;
-        graphics.draw_rectangle(Rectangle::from_tuples((0., 0.), (size.x as f32, size.y as f32)), Color::GREEN);
+        let rect = graphics.screen_rect();
+        graphics.draw_rectangle(rect, Color::GREEN);
 
         for i in 0..self.layout.len() - 1 {
             let p1 = self.layout[i];
@@ -63,5 +63,5 @@ impl crate::entity::EntityBehavior for LevelLayout {
 }
 impl MessageHandler for LevelLayout {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Message) {}
+    fn process(&mut self, _message: &Messages) {}
 }
