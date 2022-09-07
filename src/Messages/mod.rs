@@ -1,5 +1,4 @@
 mod message_bus;
-use std::hash::Hash;
 pub use message_bus::{MessageBus, SharedMessageBus};
 
 pub enum Messages {

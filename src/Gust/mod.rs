@@ -1,9 +1,9 @@
 mod player;
 mod enemy;
 mod level;
-mod level_layout;
 mod tower;
 pub mod main_menu;
+pub mod game_data;
 
 crate::physics_layer_enum! {
     pub enum PhysicsLayers {

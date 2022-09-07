@@ -1,6 +1,6 @@
 use crate::physics::{RigidBody, RigidBodyHandle};
 use crate::assets::{Texture, Images};
-use crate::{math::sized_rect, V2, Graphics, UpdateState};
+use crate::{utils::Rectangle, V2, Graphics, UpdateState};
 
 mod scene;
 mod manager;
@@ -34,7 +34,7 @@ impl Entity {
         }
 
     }
-    pub fn initialize(&mut self) {
+    pub(super) fn initialize(&mut self) {
         let self_pointer = self as *mut Entity;
         let mut helper = EntityInitialization {
             position: &mut self.position,
@@ -54,7 +54,7 @@ impl Entity {
             self.rigid_body = Some(rigid_body);
         }
     }
-    pub fn update(&mut self, state: &mut UpdateState, scene: &crate::physics::QuadTree) {
+    pub(super) fn update(&mut self, state: &mut UpdateState) {
         let mut helper = EntityUpdate {
             position: &mut self.position,
             scale: &mut self.scale,
@@ -62,9 +62,9 @@ impl Entity {
             rigid_body: &mut self.rigid_body,
             mark_for_destroy: &mut self.mark_for_destroy
         };
-        self.behavior.update(&mut helper, state, scene)
+        self.behavior.update(&mut helper, state)
     }
-    pub fn notify_collision(&mut self, other: &Entity, messages: &mut crate::messages::MessageBus) {
+    pub(super) fn notify_collision(&mut self, other: &Entity, messages: &mut crate::messages::MessageBus) {
         let mut helper = EntityUpdate {
             position: &mut self.position,
             scale: &mut self.scale,
@@ -83,6 +83,9 @@ impl Entity {
     pub fn destroy(&mut self) {
         self.mark_for_destroy = true;
     }
+    pub fn bounds(&self) -> crate::utils::Rectangle {
+        crate::utils::Rectangle::new(self.position, self.scale)
+    }
 }
 
 pub trait EntityBehavior: crate::messages::MessageHandler {
@@ -92,16 +95,16 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
 
     fn initialize(&mut self, e: &mut EntityInitialization);
 
-    fn update(&mut self, e: &mut EntityUpdate, update_state: &mut UpdateState, scene: &crate::physics::QuadTree);
+    fn update(&mut self, e: &mut EntityUpdate, update_state: &mut UpdateState);
     fn render(&self, e: &Entity, graphics: &mut Graphics);
 
     fn on_collision(&mut self, _e: &mut EntityUpdate, _other: &Entity, _messages: &mut crate::messages::MessageBus) { }
 
     fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
-        Texture::render(graphics, image, sized_rect(e.position, e.scale));
+        Texture::render(graphics, image, Rectangle::new(e.position, e.scale));
     }
     fn render_texture_tinted(&self, image: Images, tint: speedy2d::color::Color, e: &Entity, graphics: &mut Graphics) {
-        Texture::render_tinted(graphics, image, sized_rect(e.position, e.scale), tint);
+        Texture::render_tinted(graphics, image, Rectangle::new(e.position, e.scale), tint);
     }
 }
 

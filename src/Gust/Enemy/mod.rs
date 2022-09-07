@@ -2,6 +2,7 @@ mod spawner;
 mod health_bar;
 pub use spawner::{Wave, EnemySpawner};
 
+#[derive(serde::Deserialize, Copy, Clone)]
 pub enum EnemyType {
     Slime,
 }
@@ -53,16 +54,17 @@ impl EntityBehavior for Enemy {
     crate::entity!(Enemy);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
-        let shape = CollisionShape::Circle(Circle::new(28.));
-        e.set_scale(32., 32.)
+        let size = crate::gust::level::Layout::grid_size();
+        let shape = CollisionShape::Circle(Circle::new(size / 2.));
+        e.set_scale(size, size)
          .attach_rigid_body(PhysicsMaterial::METAL, shape)
          .collision_layer(PhysicsLayers::Enemy)
          .collides_with(PhysicsLayers::Player as u8 | PhysicsLayers::Bullet as u8);
         self.animation.play(SlimeAnimation::Idle);
     }
 
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) {
-        let layout = state.entities.find_as_mut::<crate::gust::level_layout::LevelLayout>().unwrap();
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
+        let layout = state.entities.find_as_mut::<crate::gust::level::Layout>().unwrap();
 
         e.set_position(layout.get_position(self.progress));
         self.animation.update(state);
@@ -75,13 +77,14 @@ impl EntityBehavior for Enemy {
         }
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
-        self.animation.render(graphics, crate::math::sized_rect(e.position, e.scale));
+        self.animation.render(graphics, crate::utils::Rectangle::new(e.position, e.scale));
 
         let position = V2::new(e.position.x + e.scale.x / 2., e.position.y);
         self.health_bar.render(position, graphics);
     }
     fn on_collision(&mut self, e: &mut EntityUpdate, other: &Entity, messages: &mut crate::messages::MessageBus) {
-        if let Some(b) = crate::utils::entity_as::<crate::gust::tower::Bullet>(other) {
+        if self.health > 0 &&
+            let Some(b) = crate::utils::entity_as::<crate::gust::tower::Bullet>(other) {
            self.take_damage(b.damage());
             if self.health == 0 {
                 messages.send(Messages::EnemyKilled);

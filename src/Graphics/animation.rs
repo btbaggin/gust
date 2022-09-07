@@ -2,9 +2,8 @@
 
 use std::collections::HashMap;
 use std::hash::Hash;
-use speedy2d::shape::Rectangle;
+use crate::utils::Rectangle;
 use crate::{Graphics, V2, V2U, assets::Images};
-use crate::math::sized_rect;
 use crate::utils::Timer;
 
 pub enum SpriteSheetOrientation {
@@ -82,8 +81,8 @@ impl<T: Eq + Hash> AnimationPlayer<T> {
                 };
                 
                 let sprite_size = V2::new(animation.frame_size.x as f32 / size.x as f32, animation.frame_size.y as f32 / size.y as f32);
-                let frame = sized_rect(V2::new(x, y), sprite_size);
-                graphics.draw_rectangle_image_subset_tinted(rect, speedy2d::color::Color::WHITE, frame, image);
+                let frame = Rectangle::new(V2::new(x, y), sprite_size);
+                graphics.draw_rectangle_image_subset_tinted(rect.into(), speedy2d::color::Color::WHITE, frame.into(), image);
             }
         }
     }

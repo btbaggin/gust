@@ -1,0 +1,21 @@
+{
+	"level_1": Level(
+		layout: [(0, 10), (10, 10), (10, 3), (20, 3)],
+		waves: [
+			(
+				count: 5,
+				interval: 0.5,
+				time: 2.0,
+				type: Slime,
+			),
+			(
+				count: 10,
+				interval: 0.5,
+				time: 5.0,
+				type: Slime,
+			),
+		],
+		towers: [(5, 11), (11, 7), (15, 2)]
+	),
+
+}

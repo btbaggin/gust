@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use crate::physics::{RigidBody, RigidBodyHandle, PhysicsMaterial, CollisionShape};
 use crate::V2;
+use crate::entity::Rectangle;
 
 pub struct EntityInitialization<'a> {
     pub(super) position: &'a mut V2,
@@ -49,6 +50,8 @@ pub struct EntityUpdate<'a> {
 }
 impl<'a> EntityUpdate<'a> {
     pub fn position(&self) -> V2 { *self.position }
+    pub fn scale(&self) -> V2 { *self.scale }
+    pub fn bounds(&self) -> Rectangle { Rectangle::new(*self.position, *self.scale) }
     pub fn set_position(&mut self, position: V2) -> &mut EntityUpdate<'a> {
         *self.position = position;
         self

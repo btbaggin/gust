@@ -1,82 +1,40 @@
 use std::time::Instant;
 use std::rc::Rc;
 use std::cell::RefCell;
-use speedy2d::*;
-use speedy2d::{shape::Rectangle, dimen::Vector2};
 use glutin::dpi::PhysicalSize;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{Fullscreen, WindowBuilder};
-use glutin::{PossiblyCurrent, ContextWrapper};
-use crate::entity::{SceneBehavior, Scene, EntityManager};
+use crate::V2;
+use crate::entity::{SceneBehavior};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::MessageBus;
 use crate::graphics::Graphics;
+use crate::physics::QuadTree;
+use crate::game_window::{WindowHandler, create_window};
+use crate::utils::Rectangle;
 
-pub trait WindowHandler {
-    // fn on_start(&mut self) { }
-    fn on_update(&mut self, state: &mut crate::UpdateState, scene: &mut Scene) -> bool;
-    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager);
-    fn on_frame_end(&mut self) { }
-    fn on_resize(&mut self, _: u32, _: u32) { }
-    fn on_focus(&mut self, _: bool) { }
-    fn on_stop(&mut self) { }
+pub struct GlobalState {
+    pub screen_size: V2,
 }
-
-struct GameWindow {
-    renderer: GLRenderer,
-    size: PhysicalSize<u32>,
-}
-
-fn create_best_context(window_builder: &WindowBuilder, event_loop: &EventLoop<()>) -> Option<glutin::WindowedContext<glutin::NotCurrent>> {
-    for vsync in &[true, false] {
-        for multisampling in &[8, 4, 2, 1, 0] {
-
-            let mut windowed_context = glutin::ContextBuilder::new()
-                .with_vsync(*vsync)
-                .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
-
-            if *multisampling > 1 {
-                windowed_context = windowed_context.with_multisampling(*multisampling);
-            }
-
-            let result = windowed_context.build_windowed(window_builder.clone(), event_loop);
-
-            match result {
-                Ok(context) => { return Some(context); }
-                Err(err) => {
-                    crate::logger::warn!("Failed to create context: {:?}", err);
-                }
-            }
-        }
+impl GlobalState {
+    fn new(screen_size: V2) -> GlobalState {
+        GlobalState { screen_size }
     }
-
-    None
 }
 
-fn create_window(event_loop: &EventLoop<()>, 
-                 builder: WindowBuilder) -> (ContextWrapper<PossiblyCurrent, glutin::window::Window>, GameWindow) {
-
-    use crate::logger::PanicLogEntry;
-    let context = create_best_context(&builder, event_loop).log_and_panic();
-    let context = unsafe { context.make_current().unwrap() };
-
-    let size = context.window().inner_size();
-    let renderer = unsafe {
-        GLRenderer::new_for_gl_context((size.width, size.height), |fn_name| {
-            context.get_proc_address(fn_name) as *const _
-        })
-    }.unwrap();
-
-    (context, GameWindow { renderer, size })
+static mut GLOBAL_STATE_VAR: Option<GlobalState> = None;
+pub fn global_state<'a>() -> &'a GlobalState {
+    unsafe { GLOBAL_STATE_VAR.as_ref().unwrap() }
 }
 
-pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)>, target_frames: u32,
-                                    mut input: Input, queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
-                                    mut handler: H) -> ! 
+pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_frames: u32,
+                          mut input: Input, queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
+                          mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = EventLoop::new();
 
+    //Build windows
     let monitor = el.primary_monitor();
     let builder = WindowBuilder::new()
         .with_title(title)  
@@ -86,21 +44,35 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
         None => builder.with_fullscreen(Some(Fullscreen::Borderless(monitor))),
     };
 
-    let (context, mut window) = create_window(&el, builder);
+    let (context, mut window, size) = create_window(&el, builder);
 
     let expected_seconds_per_frame = 1. / target_frames as f32;
+
+    //Initialize game state
+    unsafe {
+        use std::borrow::BorrowMut;
+        *GLOBAL_STATE_VAR.borrow_mut() = Some(GlobalState::new(size));
+    }
+
+
     let mut last_time = Instant::now();
     let mut mouse_position = crate::V2::new(0., 0.);
 
     let message_bus = Rc::new(RefCell::new(MessageBus::new()));
     let entities = crate::entity::entity_manager();
 
-    let bounds = Rectangle::from_tuples((0., 0.), (window.size.width as f32, window.size.height as f32));
-    let mut scene = crate::entity::Scene::new(scene, bounds);
+    let bounds = Rectangle::new(V2::new(0., 0.), size);
+    let mut quad_tree = QuadTree::new(bounds);
+
+ 
+    //Start scene
+    let mut scene = crate::entity::Scene::new(scene);
     scene.load(queue.clone(), message_bus.clone(), entities);
     
+    //Run game
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
+        let global_state = unsafe { GLOBAL_STATE_VAR.as_mut().unwrap() };
         
         match event {
             Event::LoopDestroyed => *control_flow = ControlFlow::Exit,
@@ -112,11 +84,13 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                 },
 
                 WindowEvent::Resized(physical_size) => {
-                    window.size = PhysicalSize::new(physical_size.width, physical_size.height);
-                    scene.resize(Rectangle::from_tuples((0., 0.), (window.size.width as f32, window.size.height as f32)));
+                    global_state.screen_size = V2::new(physical_size.width as f32, physical_size.height as f32);
+
+                    let bounds = Rectangle::new(V2::new(0., 0.), global_state.screen_size);
+                    quad_tree = QuadTree::new(bounds);
 
                     context.resize(physical_size);
-                    window.renderer.set_viewport_size_pixels(Vector2::new(physical_size.width, physical_size.height));
+                    window.set_viewport_size_pixels(speedy2d::dimen::Vector2::new(physical_size.width, physical_size.height));
                     handler.on_resize(physical_size.width, physical_size.height);
                 },
                 WindowEvent::Focused(focused) => {
@@ -140,6 +114,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                     message_bus.clone(),
                     queue.clone(),
                     entities,
+                    &quad_tree
                 );
                 if !handler.on_update(&mut state, &mut scene) {
                     *control_flow = ControlFlow::Exit;
@@ -149,8 +124,8 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                 let mut messages = message_bus.borrow_mut();
                 unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
-                window.renderer.draw_frame(|graphics| {
-                    let mut graphics = Graphics::new(graphics, queue.clone(), window.size);
+                window.draw_frame(|graphics| {
+                    let mut graphics = Graphics::new(graphics, queue.clone());
                     handler.on_render(&mut graphics, &scene, entities);
                 });
                 context.swap_buffers().unwrap();
@@ -159,7 +134,7 @@ pub(crate) fn create_game_window<H>(title: &'static str, size: Option<(f32, f32)
                 handler.on_frame_end();
                 
                 entities.dispose_entities(&mut messages);
-                scene.update_positions(entities);
+                quad_tree.update_positions(entities);
 
                 sleep_until_frame_end(now, expected_seconds_per_frame);
             },

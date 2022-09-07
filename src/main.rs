@@ -27,12 +27,15 @@ mod math;
 mod ui;
 mod update_state;
 mod generational_array;
+mod game_window;
 pub use graphics::Graphics;
 pub use update_state::UpdateState;
 use crate::entity::EntityManager;
 
 /* TODO
  * Scene transitions
+ * RigidBodies should be offset by half scale
+ * My own rect class
  */
 
 
@@ -43,7 +46,7 @@ struct GameState {
     is_playing: bool,
 }
 
-impl game_loop::WindowHandler for GameState {
+impl game_window::WindowHandler for GameState {
     fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager) {
         graphics.clear_screen(Color::BLACK);
 
@@ -94,11 +97,8 @@ fn main() {
         audio,
         is_playing: true,
     };
-    game_loop::create_game_window("gust", 
-                                  Some((640., 480.)),
-                                  60,
-                                  input,
-                                  q,
-                                  Box::new(gust::main_menu::MainMenu::new()),
-                                  state)
+    game_loop::start_game_loop("gust", Some((640., 480.)),
+                               60, input, q,
+                               Box::new(gust::main_menu::MainMenu::new()),
+                               state)
 }

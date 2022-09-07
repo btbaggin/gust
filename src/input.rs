@@ -146,8 +146,7 @@ pub enum Actions {
     Right,
     Accept,
     Cancel,
-    GetTower,
-    Place,
+    Select,
     Slower,
     Faster,
 }
@@ -218,6 +217,5 @@ pub fn load_input_settings(input: &mut Input, settings: &SettingsFile) {
     input.map.insert(Actions::Slower, Key::Minus);
     input.map.insert(Actions::Faster, Key::Plus);
     input.map.insert(Actions::Accept, Key::Enter);
-    input.map.insert(Actions::GetTower, Key::F1);
-    input.map.insert(Actions::Place, Key::MouseLeft);
+    input.map.insert(Actions::Select, Key::MouseLeft);
 }

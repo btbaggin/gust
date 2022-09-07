@@ -2,8 +2,6 @@ use crate::Graphics;
 use super::{EntityManager, UpdateState};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::messages::{MessageBus, SharedMessageBus};
-use crate::physics::QuadTree;
-use speedy2d::shape::Rectangle;
 
 pub enum SceneLoad {
     Load(Box<dyn SceneBehavior>),
@@ -13,15 +11,10 @@ pub enum SceneLoad {
 
 pub struct Scene {
     behavior: Box<dyn SceneBehavior>,
-    quad_tree: QuadTree,
-
 }
 impl Scene {
-    pub fn new(behavior: Box<dyn SceneBehavior>, bounds: Rectangle) -> Scene {
-        Scene { 
-            behavior,
-            quad_tree: QuadTree::new(bounds),
-        }
+    pub fn new(behavior: Box<dyn SceneBehavior>) -> Scene {
+        Scene { behavior }
     }
     
     pub fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus, entities: &mut EntityManager) {
@@ -59,7 +52,7 @@ impl Scene {
                 let entities = crate::entity::entity_manager();
                 for h in entities.iter_handles() {
                     let entity = entities.get_mut(&h).unwrap();
-                    entity.update(state, &self.quad_tree);
+                    entity.update(state);
                 }
                 let mut m = state.message_bus.borrow_mut();
                 m.process_messages();
@@ -73,20 +66,6 @@ impl Scene {
             entity.behavior.render(entity, graphics);
         }
         self.behavior.render(graphics);
-    }
-
-    pub fn resize(&mut self, bounds: Rectangle) {
-        self.quad_tree = QuadTree::new(bounds)
-    }
-
-    pub fn update_positions(&mut self, entities: &mut EntityManager) {
-        //QuadTree will be one frame behind but that's fine because it's only used for course detection
-        self.quad_tree.clear();
-        for h in entities.iter_handles() {
-            let entity = entities.get(&h).unwrap();
-            let bounds = crate::math::sized_rect(entity.position, entity.scale);
-            self.quad_tree.insert(h, bounds)
-        }
     }
 }
 

@@ -1,25 +1,23 @@
-use crate::{V2, V2U};
+use crate::V2;
 use cgmath::MetricSpace;
-use speedy2d::shape::Rectangle;
 use speedy2d::color::Color;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate};
 use crate::messages::{MessageHandler, Messages};
+use crate::utils::Rectangle;
 
-//TODO tile size based on screen size
-const GRID_SIZE: f32 = 32.;
-
-pub struct LevelLayout { 
+pub struct Layout { 
     layout: Vec<V2>,
     lengths: Vec<f32>,
     total_length: f32
 }
-impl LevelLayout {
-    pub fn new(points: Vec<V2U>) -> LevelLayout {
+impl Layout {
+    pub fn new(points: &Vec<(u32, u32)>) -> Layout {
         let mut lengths = vec!();
 
+        let grid_size = Layout::grid_size();
         let mut layout = Vec::with_capacity(points.len());
         for p in points {
-            layout.push(V2::new(p.x as f32 * GRID_SIZE, p.y as f32 * GRID_SIZE));
+            layout.push(V2::new(p.0 as f32 * grid_size, p.1 as f32 * grid_size));
         }
 
         let mut total_length = 0.;
@@ -28,8 +26,9 @@ impl LevelLayout {
             lengths.push(length);
             total_length += length;
         }
-        LevelLayout { layout, lengths, total_length }
+        Layout { layout, lengths, total_length }
     }
+
     pub fn get_position(&self, progress: f32) -> V2 {
         let mut pos = self.total_length * progress;
 
@@ -43,25 +42,31 @@ impl LevelLayout {
         let percent = pos / self.lengths[i];
         p1 + V2::new((p2.x - p1.x) * percent, (p2.y - p1.y) * percent)
     }
+
+    pub fn grid_size() -> f32 {
+        crate::graphics::screen_rect().width() / 20.
+    }
 }
-impl crate::entity::EntityBehavior for LevelLayout {
-    crate::entity!(LevelLayout);
+impl crate::entity::EntityBehavior for Layout {
+    crate::entity!(Layout);
+    
     fn initialize(&mut self, _e: &mut EntityInitialization) { }
-    fn update(&mut self, _e: &mut EntityUpdate, _state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) { }
+    fn update(&mut self, _e: &mut EntityUpdate, _state: &mut crate::UpdateState) { }
     fn render(&self, _e: &Entity, graphics: &mut crate::Graphics) {
-        let rect = graphics.screen_rect();
-        graphics.draw_rectangle(rect, Color::GREEN);
+        let grid_size = Layout::grid_size();
+        let rect = crate::graphics::screen_rect();
+        graphics.draw_rectangle(rect.into(), Color::GREEN);
 
         for i in 0..self.layout.len() - 1 {
             let p1 = self.layout[i];
             let p2 = self.layout[i + 1];
 
-            let rect = crate::math::sized_rect(p1, (p2 - p1) + V2::new(GRID_SIZE, GRID_SIZE));
-            graphics.draw_rectangle(rect, Color::YELLOW);
+            let rect = Rectangle::new(p1, (p2 - p1) + V2::new(grid_size, grid_size));
+            graphics.draw_rectangle(rect.into(), Color::YELLOW);
         }
     }
 }
-impl MessageHandler for LevelLayout {
+impl MessageHandler for Layout {
     crate::handle_messages!();
     fn process(&mut self, _message: &Messages) {}
 }

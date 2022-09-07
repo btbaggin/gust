@@ -34,8 +34,11 @@ impl EntityBehavior for Bullet {
         self.vector = (self.vector - e.position()).normalize() * self.speed;
     }
 
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, _scene: &crate::physics::QuadTree) {
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
         e.alter_position(self.vector * state.delta_time);
+        if !crate::graphics::on_screen(&e.bounds()) {
+            e.destroy();
+        }
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
         graphics.draw_circle(from_v2(e.position), e.scale.x, speedy2d::color::Color::WHITE);

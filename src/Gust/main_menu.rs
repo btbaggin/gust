@@ -55,7 +55,7 @@ impl SceneBehavior for MainMenu {
         for (i, l) in self.labels.iter().enumerate() {
             let color = if self.selected_index == i { speedy2d::color::Color::RED } else { speedy2d::color::Color::WHITE };
 
-            let x = l.align_h(&graphics.screen_rect(), HorizontalAlignment::Center);
+            let x = l.align_h(&crate::graphics::screen_rect(), HorizontalAlignment::Center);
             l.render(graphics, crate::V2::new(x, y), color);
             y += l.size().y + PADDING;
         }

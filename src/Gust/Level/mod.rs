@@ -1,11 +1,15 @@
-use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions, EntityManager};
-use crate::gust::{player::Player, enemy::EnemySpawner, enemy::Wave, enemy::EnemyType};
+use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions, EntityManager, EntityHandle};
+use crate::gust::{player::Player, enemy::EnemySpawner, enemy::Wave};
 use crate::job_system::ThreadSafeJobQueue;
 use crate::messages::{Messages, MessageHandler, MessageBus};
 use crate::assets::{Fonts};
 use crate::ui::{LabeledValue, UiElement, HorizontalAlignment};
-use crate::{V2U, V2};
+use crate::V2;
 use crate::input::Actions;
+use std::collections::HashMap;
+
+mod layout;
+pub use layout::Layout;
 
 const MAX_HEALTH: u32 = 100;
 
@@ -20,6 +24,7 @@ pub struct Level {
     health: LabeledValue<u32>,
     gold: LabeledValue<u32>,
     status: LevelStatus,
+    indicator: Option<EntityHandle>,
 }
 impl Level {
     pub fn new() -> Level {
@@ -28,28 +33,49 @@ impl Level {
             health: LabeledValue::new("Health", MAX_HEALTH, Fonts::Regular, 24.),
             gold: LabeledValue::new("Gold", 0, Fonts::Regular, 24.),
             status: LevelStatus::InProgress,
+            indicator: None
         }
     }
 }
 impl SceneBehavior for Level {
     fn load(&mut self, _queue: ThreadSafeJobQueue, _messages: &mut MessageBus, entities: &mut EntityManager) {    
+        let file = std::fs::read_to_string("./resources/levels.ron").unwrap();
+        let v = ron::from_str::<HashMap<&str, crate::gust::game_data::Level>>(&file).unwrap();
+        let level = &v["level_1"];
+
+        for w in &level.waves {
+            self.spawner.add_wave(Wave::new(w.count, w.interval, w.r#type), w.time);
+        }
+
+        let layout = crate::gust::level::Layout::new(&level.layout);
+        entities.create_options(layout, EntityCreationOptions::Tag);
+
+        for t in &level.towers {
+            let tower = crate::gust::tower::Tower::new(10., 5, 200.);
+            entities.create_at(tower, V2::new(t.0 as f32 * 32., t.1 as f32 * 32.));
+        }
+
         let player = Player::new();
         entities.create_options(player, EntityCreationOptions::Tag);
-
-        self.spawner.add_wave(Wave::new(5, 0.5, EnemyType::Slime), 2.);
-        self.spawner.add_wave(Wave::new(10, 1., EnemyType::Slime), 5.);
-
-        let positions = vec!(V2U::new(0, 10), V2U::new(10, 10), V2U::new(10, 3), V2U::new(20, 3));
-        let layout = crate::gust::level_layout::LevelLayout::new(positions);
-        entities.create_options(layout, EntityCreationOptions::Tag);
     }
     fn unload(&mut self) {}
     fn update(&mut self, state: &mut crate::UpdateState) -> SceneLoad {
         self.spawner.update(state.delta_time, state.entities);
 
-        if state.action_pressed(&Actions::GetTower) {
-            let tower = crate::gust::tower::Tower::new(10., 5, 200.);
-            state.entities.create(tower);
+        //Show tower indicator
+        if state.action_pressed(&Actions::Select) {
+            let entities = state.quad_tree.at_point::<crate::gust::tower::Tower>(state.mouse_pos(), state.entities);
+            assert!(entities.len() <= 1);
+
+            if let Some(i) = self.indicator && 
+               let Some(e) = state.entities.get_mut(&i) {
+                e.destroy();
+            }
+
+            if entities.len() == 1 {
+                let e = state.entities.get(&entities[0]).unwrap();
+                self.indicator = Some(state.entities.create_at(crate::gust::tower::Indicator::new(200.), e.position));
+            }
         }
 
         match self.status {
@@ -61,7 +87,7 @@ impl SceneBehavior for Level {
     fn render(&self, graphics: &mut crate::Graphics) {
         self.health.render(graphics, V2::new(0., 0.), speedy2d::color::Color::WHITE);
         
-        let x = self.gold.align_h(&graphics.screen_rect(), HorizontalAlignment::Right);
+        let x = self.gold.align_h(&crate::graphics::screen_rect(), HorizontalAlignment::Right);
         self.gold.render(graphics, V2::new(x, 0.), speedy2d::color::Color::WHITE);
     }
 }

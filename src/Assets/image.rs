@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 use std::rc::Rc;
 use std::time::Instant;
 use speedy2d::image::*;
-use speedy2d::shape::Rectangle;
+use crate::utils::Rectangle;
 use crate::job_system::{JobType, RawDataPointer};
 use crate::logger::{PanicLogEntry, info, warn};
 use crate::graphics::Graphics;
@@ -19,9 +19,9 @@ impl Texture {
     }
     fn draw(&self, graphics: &mut Graphics, rect: Rectangle, tint: speedy2d::color::Color) {
         if let Some(b) = &self.bounds {
-            graphics.draw_rectangle_image_subset_tinted(rect, tint, b.clone(), &self.image);
+            graphics.draw_rectangle_image_subset_tinted(rect.into(), tint, b.clone().into(), &self.image);
         } else {
-            graphics.draw_rectangle_image_tinted(rect, tint, &self.image);
+            graphics.draw_rectangle_image_tinted(rect.into(), tint, &self.image);
         }
     }
 
@@ -167,7 +167,7 @@ fn read_texture_atlas(path: &str) -> Vec<(String, Rectangle)> {
         let height = (y + image_height) as f32 / total_height;
         let x = x as f32 / total_width;
         let y = y as f32 / total_height;
-        result.push((name, Rectangle::from_tuples((x, y), (width, height))));
+        result.push((name, Rectangle::from_coords(crate::V2::new(x, y), crate::V2::new(width, height))));
     }
 
     result

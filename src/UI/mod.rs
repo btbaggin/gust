@@ -1,5 +1,5 @@
-use crate::{Graphics, V2};
-use speedy2d::shape::Rectangle;
+use crate::V2;
+use crate::utils::Rectangle;
 
 mod label;
 mod labeled_value;
@@ -21,17 +21,17 @@ pub trait UiElement {
 
     fn align_h(&self, rect: &Rectangle, alignment: HorizontalAlignment) -> f32 {
         match alignment {
-            HorizontalAlignment::Left => rect.top_left().x,
-            HorizontalAlignment::Center => (rect.size().x - self.size().x) / 2.,
-            HorizontalAlignment::Right => rect.bottom_right().x - self.size().x,
+            HorizontalAlignment::Left => rect.left(),
+            HorizontalAlignment::Center => (rect.width() - self.size().x) / 2.,
+            HorizontalAlignment::Right => rect.right() - self.size().x,
         }
     }
 
     fn align_v(&self, rect: &Rectangle, alignment: VerticalAlignment) -> f32 {
         match alignment {
-            VerticalAlignment::Top => rect.top_left().y,
-            VerticalAlignment::Center => (rect.size().y - self.size().y) / 2.,
-            VerticalAlignment::Bottom => rect.bottom_right().y - self.size().y,
+            VerticalAlignment::Top => rect.top(),
+            VerticalAlignment::Center => (rect.height() - self.size().y) / 2.,
+            VerticalAlignment::Bottom => rect.bottom() - self.size().y,
         }
     }
 }

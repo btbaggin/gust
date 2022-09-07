@@ -3,7 +3,9 @@ use crate::entity::Entity;
 
 mod timer;
 mod tween;
+mod rectangle;
 pub use timer::Timer;
+pub use rectangle::Rectangle;
 
 
 pub fn entity_as<T: 'static>(entity: &Entity) -> Option<&T> {

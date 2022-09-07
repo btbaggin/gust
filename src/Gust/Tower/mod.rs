@@ -2,35 +2,26 @@ use crate::V2;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityHandle};
 use crate::messages::{MessageHandler, Messages};
 use crate::utils::Timer;
-use crate::input::Actions;
 use cgmath::MetricSpace;
 
 mod bullet;
+mod indicator;
 pub use bullet::Bullet;
-
-enum TowerState {
-    Placing,
-    Building,
-    Placed
-}
+pub use indicator::Indicator;
 
 pub struct Tower { 
     timer: Timer,
-    attack_speed: f32,
     damage: u32,
     range: f32,
     target: Option<EntityHandle>,
-    state: TowerState
 }
 impl Tower {
     pub fn new(attack_speed: f32, damage: u32, range: f32) -> Tower {
         Tower {
-            timer: Timer::new(2.), //build time
-            attack_speed,
+            timer: Timer::new(1. / attack_speed),
             damage,
             range,
             target: None,
-            state: TowerState::Placing
         }
     }
 
@@ -48,13 +39,9 @@ impl Tower {
         }
 
         if self.target.is_none() {
-            let targets = scene.within_distance(position, 100., manager);
-            for t in &targets {
-                let entity = manager.get(t).unwrap();
-                if crate::utils::entity_as::<crate::gust::enemy::Enemy>(entity).is_some() {
-                    self.target = Some(*t);
-                    return;
-                }
+            let targets = scene.within_distance::<crate::gust::enemy::Enemy>(position, 100., manager);
+            if targets.len() > 0 {
+                self.target = Some(targets[0])
             }
         }
     }
@@ -63,43 +50,22 @@ impl crate::entity::EntityBehavior for Tower {
     crate::entity!(Tower);
     
     fn initialize(&mut self, e: &mut EntityInitialization) {
-        e.set_scale(25., 25.);
+        let size = crate::gust::level::Layout::grid_size();
+        e.set_scale(size, size);
     }
 
-    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState, scene: &crate::physics::QuadTree) {
-        match self.state {
-            TowerState::Placing => {
-                e.set_position(state.mouse_pos());
-                if state.action_pressed(&Actions::Place) {
-                    self.state = TowerState::Building;
-                } else if state.action_pressed(&Actions::Cancel) {
-                    e.destroy();
-                }
-            },
-            TowerState::Building => {
-                if self.timer.update(state.delta_time) {
-                    self.state = TowerState::Placed;
-                    self.timer = Timer::new(1. / self.attack_speed);
-                }
-            },
-            TowerState::Placed => {
-                if self.timer.update(state.delta_time) {
-                    self.find_target(e.position(), state.entities, scene);
-                    if let Some(t) = self.target {
-                        let target = state.entities.get(&t).unwrap().position;
-                        state.entities.create_at(bullet::Bullet::fire(500., self.damage, target), e.position());
-                    }
-
-                }
+    fn update(&mut self, e: &mut EntityUpdate, state: &mut crate::UpdateState) {
+        if self.timer.update(state.delta_time) {
+            self.find_target(e.position(), state.entities, state.quad_tree);
+            if let Some(t) = self.target {
+                let target = state.entities.get(&t).unwrap().position;
+                state.entities.create_at(bullet::Bullet::fire(500., self.damage, target), e.position());
             }
+
         }
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
-        match self.state {
-            TowerState::Placing => self.render_texture_tinted(crate::assets::Images::Testing, speedy2d::color::Color::GRAY, e, graphics),
-            TowerState::Building => self.render_texture_tinted(crate::assets::Images::Testing, speedy2d::color::Color::RED, e, graphics),
-            TowerState::Placed => self.render_texture(crate::assets::Images::Testing, e, graphics),
-        }
+        self.render_texture(crate::assets::Images::Testing, e, graphics);
     }
 }
 impl MessageHandler for Tower {
