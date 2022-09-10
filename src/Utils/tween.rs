@@ -1,20 +1,32 @@
 #![allow(dead_code)]
 use std::ops::{Add, Mul, Sub};
 
-pub struct Tween<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T>> {
+pub struct Tween<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T> + std::cmp::PartialEq> {
     from: T,
-    to: T
+    to: T,
+    current: T,
 }
-impl<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T>> Tween<T> {
-    fn new(from: T, to: T) -> Tween<T> {
-        Tween { from, to }
+impl<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T> + std::cmp::PartialEq> Tween<T> {
+    pub fn new(from: T, to: T) -> Tween<T> {
+        Tween { from, to, current: from }
     }
-    fn lerp(&self, current: T, t: f32) -> T {
-        current + (self.to - current) * t
+    pub fn lerp(&mut self, t: f32) {
+        self.current = self.current + (self.to - self.current) * t;
     }
 
-    fn slerp(&self, t: f32) -> T {
-        self.from * (1. - t) + self.to * t
+    pub fn slerp(&mut self, t: f32) {
+        self.current = self.from * (1. - t) + self.to * t;
+    }
+    pub fn set_to(&mut self, to: T) {
+        self.to = to;
+    }
+
+    pub fn value(&self) -> T {
+        self.current
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.current == self.to
     }
 }
 // pub trait Tween {

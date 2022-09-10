@@ -24,7 +24,10 @@ impl Wave {
         }
 
         if self.spawn_interval.update(delta_time) {
-            entities.create(crate::gust::enemy::Enemy::new());
+            let entity = match self.enemy_type {
+                EnemyType::Slime => crate::gust::enemy::Enemy::new(),
+            };
+            entities.create(entity);
             self.spawned_count += 1
         }
     }

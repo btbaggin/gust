@@ -91,6 +91,7 @@ impl SceneBehavior for Level {
         self.gold.render(graphics, V2::new(x, 0.), speedy2d::color::Color::WHITE);
     }
 }
+
 impl MessageHandler for Level {
     crate::handle_messages!(Messages::EnemyGotToEnd(0), Messages::EnemyKilled);
     

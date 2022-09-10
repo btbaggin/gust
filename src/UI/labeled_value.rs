@@ -1,17 +1,18 @@
 
 #![allow(dead_code)]
-use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout};
+use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock};
 use crate::assets::{Fonts, request_font};
 use crate::{V2, Graphics};
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::graphics::{Font, TextLayout};
 
 pub struct LabeledValue<T: std::fmt::Display + Copy> {
     value: T,
     label: &'static str,
     font: Fonts,
     size: f32,
-    layout: RefCell<Option<Rc<FormattedTextBlock>>>,
+    layout: RefCell<Option<Rc<TextLayout>>>,
 }
 impl<T: std::fmt::Display + Copy> LabeledValue<T> {
     pub fn new(label: &'static str, value: T, font: Fonts, size: f32) -> LabeledValue<T> {
@@ -31,9 +32,9 @@ impl<T: std::fmt::Display + Copy> LabeledValue<T> {
             let mut layout = self.layout.borrow_mut();
             if layout.is_none() {
                 let text = format!("{}: {}", self.label, self.value);
-                *layout = Some(font.layout_text(&text, self.size, TextOptions::new()));
+                *layout = Some(font.layout_text(graphics, &text, self.size));
             }
-            graphics.draw_text(crate::math::from_v2(position), color, layout.as_ref().unwrap());
+            graphics.draw_text(position, color, layout.as_ref().unwrap());
         }
     }
 }

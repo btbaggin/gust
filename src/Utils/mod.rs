@@ -4,6 +4,7 @@ use crate::entity::Entity;
 mod timer;
 mod tween;
 mod rectangle;
+pub use tween::Tween;
 pub use timer::Timer;
 pub use rectangle::Rectangle;
 

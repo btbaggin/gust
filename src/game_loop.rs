@@ -1,18 +1,18 @@
 use std::time::Instant;
 use std::rc::Rc;
 use std::cell::RefCell;
-use glutin::dpi::PhysicalSize;
-use glutin::event::{Event, WindowEvent};
-use glutin::event_loop::{ControlFlow, EventLoop};
-use glutin::window::{Fullscreen, WindowBuilder};
+use glium::glutin::dpi::PhysicalSize;
+use glium::glutin::event::{Event, WindowEvent};
+use glium::glutin::event_loop::ControlFlow;
+use glium::glutin::window::{Fullscreen, WindowBuilder};
 use crate::V2;
 use crate::entity::{SceneBehavior};
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::MessageBus;
 use crate::graphics::Graphics;
 use crate::physics::QuadTree;
-use crate::game_window::{WindowHandler, create_window};
 use crate::utils::Rectangle;
+use crate::entity::{EntityManager, Scene};
 
 pub struct GlobalState {
     pub screen_size: V2,
@@ -23,6 +23,17 @@ impl GlobalState {
     }
 }
 
+pub trait WindowHandler {
+    // fn on_start(&mut self) { }
+    fn on_update(&mut self, state: &mut crate::UpdateState, scene: &mut Scene) -> bool;
+    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager);
+    fn on_frame_end(&mut self) { }
+    fn on_resize(&mut self, _: u32, _: u32) { }
+    fn on_focus(&mut self, _: bool) { }
+    fn on_stop(&mut self) { }
+}
+
+
 static mut GLOBAL_STATE_VAR: Option<GlobalState> = None;
 pub fn global_state<'a>() -> &'a GlobalState {
     unsafe { GLOBAL_STATE_VAR.as_ref().unwrap() }
@@ -32,7 +43,7 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                           mut input: Input, queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
                           mut handler: H) -> ! 
     where H: WindowHandler + 'static {
-    let el = EventLoop::new();
+    let el = glium::glutin::event_loop::EventLoop::new();
 
     //Build windows
     let monitor = el.primary_monitor();
@@ -44,7 +55,8 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
         None => builder.with_fullscreen(Some(Fullscreen::Borderless(monitor))),
     };
 
-    let (context, mut window, size) = create_window(&el, builder);
+    let mut window = crate::graphics::create_window(&el, builder, queue.clone());
+    let size = window.window_size();
 
     let expected_seconds_per_frame = 1. / target_frames as f32;
 
@@ -89,8 +101,7 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                     let bounds = Rectangle::new(V2::new(0., 0.), global_state.screen_size);
                     quad_tree = QuadTree::new(bounds);
 
-                    context.resize(physical_size);
-                    window.set_viewport_size_pixels(speedy2d::dimen::Vector2::new(physical_size.width, physical_size.height));
+                    window.resize(physical_size);
                     handler.on_resize(physical_size.width, physical_size.height);
                 },
                 WindowEvent::Focused(focused) => {
@@ -124,11 +135,13 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 let mut messages = message_bus.borrow_mut();
                 unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
-                window.draw_frame(|graphics| {
-                    let mut graphics = Graphics::new(graphics, queue.clone());
-                    handler.on_render(&mut graphics, &scene, entities);
-                });
-                context.swap_buffers().unwrap();
+                //TODO make better
+                // window.draw_frame(|graphics| {
+                //     let mut graphics = Graphics::new(graphics, queue.clone());
+                // });
+                //context.swap_buffers().unwrap();
+                handler.on_render(&mut window, &scene, entities);
+                window.draw_frame();
                 
                 // TODO skip on frame end if game is running slow
                 handler.on_frame_end();
@@ -136,6 +149,7 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 entities.dispose_entities(&mut messages);
                 quad_tree.update_positions(entities);
 
+                //TODO *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time)
                 sleep_until_frame_end(now, expected_seconds_per_frame);
             },
             _ => {}

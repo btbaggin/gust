@@ -1,50 +1,13 @@
 use std::sync::atomic::Ordering;
 use std::rc::Rc;
 use std::time::Instant;
-use speedy2d::image::*;
 use crate::utils::Rectangle;
 use crate::job_system::{JobType, RawDataPointer};
 use crate::logger::{PanicLogEntry, info, warn};
 use crate::graphics::Graphics;
+use crate::graphics::Texture;
 use super::ASSET_STATE_LOADED;
 use super::{AssetData, SlotTag, AssetSlot, AssetTypes, get_slot_mut, Images};
-
-pub struct Texture {
-    image: Rc<ImageHandle>,
-    bounds: Option<Rectangle>,
-}
-impl Texture {
-    pub fn new(image: Rc<ImageHandle>, bounds: Option<Rectangle>) -> Texture {
-        Texture { image, bounds }
-    }
-    fn draw(&self, graphics: &mut Graphics, rect: Rectangle, tint: speedy2d::color::Color) {
-        if let Some(b) = &self.bounds {
-            graphics.draw_rectangle_image_subset_tinted(rect.into(), tint, b.clone().into(), &self.image);
-        } else {
-            graphics.draw_rectangle_image_tinted(rect.into(), tint, &self.image);
-        }
-    }
-
-    pub fn render(graphics: &mut Graphics, image: Images, rect: Rectangle) {
-        if let Some(image) = request_image(graphics, image) {
-            image.draw(graphics, rect, speedy2d::color::Color::WHITE)
-        }
-    }
-
-    pub fn render_tinted(graphics: &mut Graphics, image: Images, rect: Rectangle, tint: speedy2d::color::Color) {
-        if let Some(image) = request_image(graphics, image) {
-            image.draw(graphics, rect, tint)
-        }
-    }
-}
-impl std::ops::Deref for Texture {
-    type Target = Rc<ImageHandle>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.image
-    }
-}
-
 
         // let data = graphics.create_image_from_file_path(None, ImageSmoothingMode::Linear,"./Assets/packed.png").log_and_panic();
         // let image = Rc::new(data);
@@ -104,8 +67,8 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
     if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
         if let AssetData::Raw(data) = &slot.data && 
            let SlotTag::Dimensions(dimen) = slot.tag {
-            let image = graphics.create_image_from_raw_pixels(ImageDataType::RGBA, ImageSmoothingMode::Linear, dimen, data).log_and_panic();
-            slot.data = AssetData::Image(Texture::new(Rc::new(image), bounds));
+            let image = graphics.load_image(data, dimen);
+           slot.data = AssetData::Image(Texture::new(Rc::new(image), bounds));
         }
     }
 
@@ -131,6 +94,7 @@ pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
     match reader.decode() {
         Ok(image) => {
             let buffer = image.into_rgba8();
+
             let asset_slot = slot.get_inner::<AssetSlot>();
             asset_slot.tag = SlotTag::Dimensions(buffer.dimensions());
             super::load_data(asset_slot, buffer.into_vec());

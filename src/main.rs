@@ -3,7 +3,6 @@
 pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
 
-use speedy2d::color::Color;
 use std::sync::Arc;
 use std::cell::RefCell;
 use logger::LogEntry;
@@ -27,7 +26,6 @@ mod math;
 mod ui;
 mod update_state;
 mod generational_array;
-mod game_window;
 pub use graphics::Graphics;
 pub use update_state::UpdateState;
 use crate::entity::EntityManager;
@@ -35,7 +33,8 @@ use crate::entity::EntityManager;
 /* TODO
  * Scene transitions
  * RigidBodies should be offset by half scale
- * My own rect class
+ * Looping sounds
+ * Color class
  */
 
 
@@ -46,10 +45,8 @@ struct GameState {
     is_playing: bool,
 }
 
-impl game_window::WindowHandler for GameState {
+impl game_loop::WindowHandler for GameState {
     fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager) {
-        graphics.clear_screen(Color::BLACK);
-
         scene_manager.render(graphics, entities);
     }
 

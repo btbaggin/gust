@@ -1,5 +1,5 @@
 use crate::physics::{RigidBody, RigidBodyHandle};
-use crate::assets::{Texture, Images};
+use crate::assets::Images;
 use crate::{utils::Rectangle, V2, Graphics, UpdateState};
 
 mod scene;
@@ -101,10 +101,9 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
     fn on_collision(&mut self, _e: &mut EntityUpdate, _other: &Entity, _messages: &mut crate::messages::MessageBus) { }
 
     fn render_texture(&self, image: Images, e: &Entity, graphics: &mut Graphics) {
-        Texture::render(graphics, image, Rectangle::new(e.position, e.scale));
-    }
-    fn render_texture_tinted(&self, image: Images, tint: speedy2d::color::Color, e: &Entity, graphics: &mut Graphics) {
-        Texture::render_tinted(graphics, image, Rectangle::new(e.position, e.scale), tint);
+        if let Some(i) = crate::assets::request_image(graphics, image) {
+            graphics.draw_image(Rectangle::new(e.position, e.scale), i);
+        }
     }
 }
 

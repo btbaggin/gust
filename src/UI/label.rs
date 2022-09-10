@@ -1,15 +1,16 @@
 #![allow(dead_code)]
-use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock, font::TextLayout};
+use speedy2d::{color::Color, font::TextOptions};
 use crate::assets::{Fonts, request_font};
 use crate::{V2, Graphics};
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::graphics::TextLayout;
 
 pub struct Label {
     text: String,
     size: f32,
     font: Fonts,
-    layout: RefCell<Option<Rc<FormattedTextBlock>>>,
+    layout: RefCell<Option<Rc<TextLayout>>>,
 }
 impl Label {
     pub fn new(text: String, font: Fonts, size: f32) -> Label {
@@ -31,9 +32,9 @@ impl Label {
         if let Some(font) = request_font(graphics, self.font) {
             let mut layout = self.layout.borrow_mut();
             if layout.is_none() {
-                *layout = Some(font.layout_text(&self.text, self.size, TextOptions::new()));
+                *layout = Some(font.layout_text(graphics, &self.text, self.size));
             }
-            graphics.draw_text(crate::math::from_v2(position), color, layout.as_ref().unwrap());
+            graphics.draw_text(position, color, layout.as_ref().unwrap());
         }
     }
 }

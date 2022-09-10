@@ -1,14 +1,14 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::Instant;
-use speedy2d::font::*;
 use crate::pooled_cache::{PooledCache, PooledCacheIndex};
 use crate::job_system::{JobType, JobQueue};
 use crate::logger::PanicLogEntry;
+use crate::graphics::{Texture, Font};
 
-mod image;
+pub mod image;
 mod font;
 mod sound;
-pub use self::image::{Texture, request_asset_image, request_image, load_image_async};
+pub use self::image::{request_asset_image, request_image, load_image_async};
 pub use self::font::{request_font, load_font_async};
 pub use self::sound::{start_audio_engine, Sound, PlayingSound, SoundStatus, load_sound_async, SoundHandle};
 
@@ -91,7 +91,7 @@ pub fn initialize_asset_cache() {
     cache.insert(AssetTypes::Image(Images::Slime), AssetSlot::new("./resources/slime.png"));
 }
 
-fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {
+pub fn get_slot_mut(t: AssetTypes) -> &'static mut AssetSlot {
     let slot = asset_cache().get_mut(&t);
     slot.log_message_and_panic(&format!("Invalid slot request {:?}, check that asset has been added", t))
 }
