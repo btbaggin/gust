@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::time::SystemTime;
-use speedy2d::color::Color;
+use crate::graphics::Color;
 use std::convert::AsRef;
 
 #[derive(Debug)]
@@ -177,7 +177,7 @@ fn populate_settings(settings: &mut SettingsFile, data: String) -> SettingsResul
 
 fn color_from_string(value: &str) -> SettingsResult<Color> {
     let values: Vec<&str> = value.split(',').collect();
-    Ok(Color::from_rgba(values[0].trim().parse::<f32>()?, 
+    Ok(Color::new(values[0].trim().parse::<f32>()?, 
                 values[1].trim().parse::<f32>()?, 
                 values[2].trim().parse::<f32>()?, 
                 values[3].trim().parse::<f32>()?))

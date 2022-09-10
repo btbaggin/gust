@@ -1,10 +1,10 @@
 #![allow(dead_code)]
-use speedy2d::{color::Color, font::TextOptions};
+// use speedy2d::{color::Color, font::TextOptions};
 use crate::assets::{Fonts, request_font};
 use crate::{V2, Graphics};
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::graphics::TextLayout;
+use crate::graphics::{TextLayout, Color};
 
 pub struct Label {
     text: String,

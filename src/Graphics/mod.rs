@@ -1,7 +1,5 @@
 use glium::{Surface, implement_vertex, uniform, VertexBuffer, IndexBuffer, Display, Program};
 use glium::texture::Texture2d;
-use glium::uniforms::UniformValue;
-use glium::uniforms::AsUniformValue;
 use std::rc::Rc;
 use cgmath::Matrix4;
 use crate::V2;
@@ -14,10 +12,12 @@ mod game_window;
 mod render;
 mod texture;
 mod font;
+mod color;
 pub use animation::{AnimationPlayer, SpriteSheetOrientation};
 pub use game_window::create_window;
 pub use texture::Texture;
 pub use font::{Font, TextLayout};
+pub use color::Color;
 
 pub type ImageHandle = Texture2d;
 
@@ -25,7 +25,6 @@ const MAX_VERTS: usize = 16384;
 const CIRCLE_FRAGMENTS: usize = 100;
 
 enum RenderObjectTypes {
-    Triangle,
     Quad,
     Circle,
     Text(usize),
@@ -52,8 +51,6 @@ struct Vertex {
     pub tex_coords: [f32; 2],
     pub color: [f32; 4]
 }
-
-
 implement_vertex!(Vertex, position, tex_coords, color);
 
 pub struct Graphics {
@@ -71,8 +68,7 @@ pub struct Graphics {
     index_count: usize,
 }
 impl Graphics {
-    pub fn load_image(&self, buffer: &[u8], dimensions: (u32, u32)) -> ImageHandle {
-        let image = glium::texture::RawImage2d::from_raw_rgba_reversed(buffer, dimensions);
+    pub fn load_image(&self, image: glium::texture::RawImage2d<u8>) -> ImageHandle {
         ImageHandle::new(&self.display, image).unwrap()
     }
 
@@ -96,11 +92,11 @@ impl Graphics {
             };
 
             match o.object_type {
-                RenderObjectTypes::Triangle => {
-                    let verts = get_vertex_slice(&o, &self.vertices, 3);
-                    let inds = get_index_slice(&o, &self.indices, 3);
-                    target.draw(verts, &inds, &self.program, &uniforms, &Default::default()).unwrap();
-                }
+                // RenderObjectTypes::Triangle => {
+                //     let verts = get_vertex_slice(&o, &self.vertices, 3);
+                //     let inds = get_index_slice(&o, &self.indices, 3);
+                //     target.draw(verts, &inds, &self.program, &uniforms, &Default::default()).unwrap();
+                // }
                 RenderObjectTypes::Quad => {
                     let verts = get_vertex_slice(&o, &self.vertices, 4);
                     let inds = get_index_slice(&o, &self.indices, 6);

@@ -1,29 +1,26 @@
-use glium::*;
-use glium::glutin::{
-    event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::ControlFlow,
-};
 use rusttype::gpu_cache::Cache;
-use rusttype::{point, vector, PositionedGlyph, Rect, Scale};
+use rusttype::{point, PositionedGlyph, Scale};
 use std::borrow::Cow;
-use std::env;
-use std::error::Error;
 use std::rc::Rc;
 use super::Graphics;
 use crate::V2;
-use crate::utils::Rectangle;
 use crate::logger::PanicLogEntry;
 
 //https://gitlab.redox-os.org/redox-os/rusttype/-/blob/master/dev/examples/gpu_cache.rs
 pub struct Font {
     font: rusttype::Font<'static>,
+    len: usize,
 }
 impl Font {
     pub fn new(font: std::path::PathBuf) -> Font {
         let data = std::fs::read(font).log_and_panic();
+        let len = data.len();
         let font = rusttype::Font::try_from_vec(data).unwrap();
     
-        Font { font, }
+        Font { font, len }
+    }
+    pub fn len(&self) -> usize {
+        self.len
     }
 
     pub fn layout_text(&self, graphics: &Graphics, text: &str, size: f32) -> Rc<TextLayout> {

@@ -7,7 +7,7 @@ use crate::logger::{PanicLogEntry, info, warn};
 use crate::graphics::Graphics;
 use crate::graphics::Texture;
 use super::ASSET_STATE_LOADED;
-use super::{AssetData, SlotTag, AssetSlot, AssetTypes, get_slot_mut, Images};
+use super::{AssetData, AssetSlot, AssetTypes, get_slot_mut, Images};
 
         // let data = graphics.create_image_from_file_path(None, ImageSmoothingMode::Linear,"./Assets/packed.png").log_and_panic();
         // let image = Rc::new(data);
@@ -65,10 +65,10 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
     }
 
     if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
-        if let AssetData::Raw(data) = &slot.data && 
-           let SlotTag::Dimensions(dimen) = slot.tag {
-            let image = graphics.load_image(data, dimen);
-           slot.data = AssetData::Image(Texture::new(Rc::new(image), bounds));
+        let data = std::mem::replace(&mut slot.data, AssetData::None);
+        if let AssetData::RawImage(data) = data {
+            let image = graphics.load_image(data);
+            slot.data = AssetData::Image(Texture::new(Rc::new(image), bounds));
         }
     }
 
@@ -94,10 +94,13 @@ pub fn load_image_async(path: &'static str, slot: RawDataPointer) {
     match reader.decode() {
         Ok(image) => {
             let buffer = image.into_rgba8();
-
+            let len = buffer.len();
+            let raw = glium::texture::RawImage2d::from_raw_rgba_reversed(&buffer, buffer.dimensions());
+            
             let asset_slot = slot.get_inner::<AssetSlot>();
-            asset_slot.tag = SlotTag::Dimensions(buffer.dimensions());
-            super::load_data(asset_slot, buffer.into_vec());
+            asset_slot.size = len;
+            asset_slot.data = AssetData::RawImage(raw);
+            asset_slot.state.swap(ASSET_STATE_LOADED, Ordering::AcqRel);
         },
         Err(e) => warn!("Error loading {:?}: {:?}", path, e),
     }

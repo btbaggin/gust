@@ -6,6 +6,7 @@ use crate::assets::{Fonts};
 use crate::ui::{LabeledValue, UiElement, HorizontalAlignment};
 use crate::V2;
 use crate::input::Actions;
+use crate::graphics::Color;
 use std::collections::HashMap;
 
 mod layout;
@@ -85,10 +86,10 @@ impl SceneBehavior for Level {
         }
     }
     fn render(&self, graphics: &mut crate::Graphics) {
-        self.health.render(graphics, V2::new(0., 0.), speedy2d::color::Color::WHITE);
+        self.health.render(graphics, V2::new(0., 0.), Color::WHITE);
         
         let x = self.gold.align_h(&crate::graphics::screen_rect(), HorizontalAlignment::Right);
-        self.gold.render(graphics, V2::new(x, 0.), speedy2d::color::Color::WHITE);
+        self.gold.render(graphics, V2::new(x, 0.), Color::WHITE);
     }
 }
 

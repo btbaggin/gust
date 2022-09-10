@@ -43,12 +43,11 @@ pub enum AssetData {
     Image(Texture),
     Font(Font),
     Sound(Sound),
-    Raw(Vec<u8>),
+    RawImage(glium::texture::RawImage2d<'static, u8>),
     None,
 }
 
 enum SlotTag {
-    Dimensions((u32, u32)),
     None,
 }
 
@@ -107,12 +106,6 @@ fn send_job_if_unloaded(queue: &mut JobQueue, slot: &mut AssetSlot, job: JobType
         }
     }
     false
-}
-
-fn load_data(slot: &mut AssetSlot, data: Vec<u8>) {
-    slot.size = data.len();
-    slot.data = AssetData::Raw(data);
-    slot.state.swap(ASSET_STATE_LOADED, Ordering::AcqRel);
 }
 
 pub fn clear_old_cache(settings: &crate::settings::SettingsFile) {

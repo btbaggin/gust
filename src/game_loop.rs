@@ -135,11 +135,6 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 let mut messages = message_bus.borrow_mut();
                 unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
-                //TODO make better
-                // window.draw_frame(|graphics| {
-                //     let mut graphics = Graphics::new(graphics, queue.clone());
-                // });
-                //context.swap_buffers().unwrap();
                 handler.on_render(&mut window, &scene, entities);
                 window.draw_frame();
                 
@@ -149,7 +144,6 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 entities.dispose_entities(&mut messages);
                 quad_tree.update_positions(entities);
 
-                //TODO *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time)
                 sleep_until_frame_end(now, expected_seconds_per_frame);
             },
             _ => {}

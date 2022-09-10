@@ -21,11 +21,12 @@ pub enum SoundError {
     InitializationFailure(String),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum SoundStatus {
     Stopped,
     Playing,
     Paused,
+    Looping,
 }
 
 pub struct Sound {
@@ -33,20 +34,13 @@ pub struct Sound {
 }
 impl Sound {
     pub fn play(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> SoundHandle {
-        // Queue the sound up for loading if it isn't loaded already
-        // Since we keep an index to the asset slot in the PlayingSound
-        // when it loaded the sound will automatically start playing
-        let lock = queue.lock().log_and_panic();
-        let mut queue = lock.borrow_mut();
-        request_sound(&mut queue, sound);
-        
-        let index = get_slot_index(AssetTypes::Sound(sound));
-        let handle = PlayingSound {
-            index: index,
-            samples_played: 0,
-            volume: 1.,
-            status: SoundStatus::Playing
-        };
+        let handle = PlayingSound::new(queue, sound, SoundStatus::Playing);
+        let sounds = sounds();
+        sounds.push(handle)
+    }
+
+    pub fn repeat(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> SoundHandle {
+        let handle = PlayingSound::new(queue, sound, SoundStatus::Looping);
         let sounds = sounds();
         sounds.push(handle)
     }
@@ -70,6 +64,22 @@ pub struct PlayingSound {
     status: SoundStatus
 }
 impl PlayingSound {
+    fn new(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds, status: SoundStatus) -> PlayingSound {
+        // Queue the sound up for loading if it isn't loaded already
+        // Since we keep an index to the asset slot in the PlayingSound
+        // when it loaded the sound will automatically start playing
+        let lock = queue.lock().log_and_panic();
+        let mut queue = lock.borrow_mut();
+        request_sound(&mut queue, sound);
+        
+        let index = get_slot_index(AssetTypes::Sound(sound));
+        PlayingSound {
+            index: index,
+            samples_played: 0,
+            volume: 1.,
+            status
+        }
+    }
     pub fn status(&self) -> SoundStatus { self.status }
     pub fn set_status(&mut self, status: SoundStatus) { self.status = status; }
     pub fn volume(&self) -> f32 { self.volume }
@@ -132,13 +142,13 @@ trait AudioDevice {
                     SoundStatus::Stopped => {
                         remove_indices.push(i);
                     }
-                    SoundStatus::Playing => { 
+                    SoundStatus::Playing | SoundStatus::Looping => { 
                         if let Some(data) = assets.get_index_mut(handle.index) {
-                            if Self::set_samples(data, handle, samples) {
+                            if Self::set_samples(data, handle, samples, handle.status == SoundStatus::Looping) {
                                 remove_indices.push(i);
                             }
                         }
-                    }
+                    },
                 }
             }
         }
@@ -148,7 +158,7 @@ trait AudioDevice {
         }
     }
 
-    fn set_samples(slot: &mut AssetSlot, handle: &mut PlayingSound, samples: &mut [(f32, f32)]) -> bool {
+    fn set_samples(slot: &mut AssetSlot, handle: &mut PlayingSound, samples: &mut [(f32, f32)], looping: bool) -> bool {
         if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED &&
             let AssetData::Sound(sound_data) = &slot.data {
 
@@ -159,7 +169,11 @@ trait AudioDevice {
                 index += 2;
 
                 if index >= sound_data.samples.len() { 
-                    return true;
+                    if looping {
+                        index = 0;
+                    } else {
+                        return true;
+                    }
                 }
             }
             handle.samples_played = index;

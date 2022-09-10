@@ -1,7 +1,6 @@
 use glium::{glutin, VertexBuffer, IndexBuffer, Display, Program};
 use glium::glutin::window::WindowBuilder;
 use glium::glutin::event_loop::EventLoop;
-use glium::texture::SrgbTexture2d;
 use super::{Graphics, MAX_VERTS};
 use crate::job_system::ThreadSafeJobQueue;
 use glium::Texture2d;

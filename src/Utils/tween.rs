@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 use std::ops::{Add, Mul, Sub};
+use std::cmp::PartialEq;
 
-pub struct Tween<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T> + std::cmp::PartialEq> {
+pub struct Tween<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T> + PartialEq> {
     from: T,
     to: T,
     current: T,
 }
-impl<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T> + std::cmp::PartialEq> Tween<T> {
+impl<T: Copy + Sub<Output = T> + Add<Output = T> + Mul<f32, Output = T> + PartialEq> Tween<T> {
     pub fn new(from: T, to: T) -> Tween<T> {
         Tween { from, to, current: from }
     }

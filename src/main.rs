@@ -6,8 +6,9 @@ pub type V2U = cgmath::Vector2<u32>;
 use std::sync::Arc;
 use std::cell::RefCell;
 use logger::LogEntry;
-use crate::entity::Scene;
+use entity::{Scene, EntityManager};
 use input::Actions;
+use graphics::Graphics;
 
 mod assets;
 mod job_system;
@@ -22,19 +23,16 @@ mod input;
 mod gust;
 mod physics;
 mod messages;
-mod math;
 mod ui;
 mod update_state;
 mod generational_array;
-pub use graphics::Graphics;
 pub use update_state::UpdateState;
-use crate::entity::EntityManager;
+
+
 
 /* TODO
  * Scene transitions
  * RigidBodies should be offset by half scale
- * Looping sounds
- * Color class
  */
 
 

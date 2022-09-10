@@ -1,4 +1,4 @@
-use speedy2d::color::Color;
+use crate::graphics::Color;
 use crate::utils::{Rectangle, Tween};
 use crate::V2;
 

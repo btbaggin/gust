@@ -40,7 +40,7 @@ impl EntityBehavior for Bullet {
         }
     }
     fn render(&self, e: &Entity, graphics: &mut crate::Graphics) {
-        graphics.draw_circle(e.position, e.scale.x, speedy2d::color::Color::WHITE);
+        graphics.draw_circle(e.position, e.scale.x, crate::graphics::Color::WHITE);
     }
     fn on_collision(&mut self, e: &mut EntityUpdate, _other: &Entity, _messages: &mut crate::messages::MessageBus) {
         e.destroy();

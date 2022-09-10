@@ -1,10 +1,8 @@
-use crate::graphics::{Vertex, RenderObjectTypes, Texture, CIRCLE_FRAGMENTS};
+use crate::graphics::{Color, Vertex, RenderObjectTypes, Texture, CIRCLE_FRAGMENTS};
 use crate::utils::Rectangle;
 use crate::V2;
 use std::rc::Rc;
 use crate::graphics::font::TextLayout;
-
-use speedy2d::font::FormattedTextBlock;
 
 impl crate::graphics::Graphics {
     // pub fn draw_triangle(&mut self) {
@@ -16,25 +14,24 @@ impl crate::graphics::Graphics {
     //     self.write_vert_and_ind(&[vertex1, vertex2, vertex3], &[0, 1, 2]);
     // }
 
-    pub fn draw_rectangle(&mut self, rect: Rectangle, color: speedy2d::color::Color) {
+    pub fn draw_rectangle(&mut self, rect: Rectangle, color: Color) {
         self.push_object(RenderObjectTypes::Quad, None, rect.top_left(), rect.size());
         self.push_quad(V2::new(0., 0.), V2::new(1., 1.), color);
     }
 
     pub fn draw_image(&mut self, rect: Rectangle, image: &Texture) {
         self.push_object(RenderObjectTypes::Quad, Some(image.handle()), rect.top_left(), rect.size());
-        self.push_quad(V2::new(0., 0.), V2::new(1., 1.), speedy2d::color::Color::WHITE);
+        self.push_quad(V2::new(0., 0.), V2::new(1., 1.), Color::WHITE);
     }
 
-    pub fn draw_text(&mut self, position: V2, color: speedy2d::color::Color, text: &Rc<TextLayout>) {
+    pub fn draw_text(&mut self, position: V2, color: Color, text: &Rc<TextLayout>) {
         let (screen_width, screen_height) = {
             let (w, h) = self.display.get_framebuffer_dimensions();
             (w as f32, h as f32)
         };
 
         let mut glyph_count = 0;
-        use rusttype::{point, vector, Rect};
-        let origin = V2::new(position.x / screen_width, -position.y / screen_height);// V2::new(position.x / screen_width, position.y / screen_height - 0.5);
+        let origin = V2::new(position.x / screen_width, -position.y / screen_height);
         let mut verts = vec!();
         let mut inds = vec!();
         for g in &text.glyphs {
@@ -51,10 +48,10 @@ impl crate::graphics::Graphics {
 
                 let uv_min = uv_rect.min;
                 let uv_max = uv_rect.max;
-                let vertex1 = Vertex { position: [rect_min.x, rect_min.y, 0.], tex_coords: [uv_min.x, uv_min.y], color: [color.r(), color.g(), color.b(), color.a()], };
-                let vertex2 = Vertex { position: [rect_min.x, rect_max.y, 0.], tex_coords: [uv_min.x, uv_max.y], color: [color.r(), color.g(), color.b(), color.a()], };
-                let vertex3 = Vertex { position: [rect_max.x, rect_max.y, 0.], tex_coords: [uv_max.x, uv_max.y], color: [color.r(), color.g(), color.b(), color.a()], };
-                let vertex4 = Vertex { position: [rect_max.x, rect_min.y, 0.], tex_coords: [uv_max.x, uv_min.y], color: [color.r(), color.g(), color.b(), color.a()], };
+                let vertex1 = Vertex { position: [rect_min.x, rect_min.y, 0.], tex_coords: [uv_min.x, uv_min.y], color: color.as_ref(), };
+                let vertex2 = Vertex { position: [rect_min.x, rect_max.y, 0.], tex_coords: [uv_min.x, uv_max.y], color: color.as_ref(), };
+                let vertex3 = Vertex { position: [rect_max.x, rect_max.y, 0.], tex_coords: [uv_max.x, uv_max.y], color: color.as_ref(), };
+                let vertex4 = Vertex { position: [rect_max.x, rect_min.y, 0.], tex_coords: [uv_max.x, uv_min.y], color: color.as_ref(), };
         
                 let base = (glyph_count * 4) as u16;
                 verts.append(&mut vec![vertex1, vertex2, vertex3, vertex4]);
@@ -68,7 +65,7 @@ impl crate::graphics::Graphics {
         self.write_vert_and_ind(&verts, &inds);
     }
 
-    pub fn draw_circle(&mut self, position: V2, radius: f32, color: speedy2d::color::Color) {
+    pub fn draw_circle(&mut self, position: V2, radius: f32, color: Color) {
         const INCREMENT: f64 = 2. * std::f64::consts::PI / CIRCLE_FRAGMENTS as f64;
 
         self.push_object(RenderObjectTypes::Circle, None, position, V2::new(radius, radius));
@@ -87,36 +84,18 @@ impl crate::graphics::Graphics {
 
     pub fn draw_rectangle_image_subset(&mut self, rect: Rectangle, bounds: Rectangle, image: &Texture) {
         self.push_object(RenderObjectTypes::Quad, Some(image.handle()), rect.top_left(), rect.size());
-        self.push_quad(bounds.top_left(), bounds.bottom_right(), speedy2d::color::Color::WHITE);
+        self.push_quad(bounds.top_left(), bounds.bottom_right(), Color::WHITE);
     }
 
-
-    fn push_quad(&mut self, uv_min: V2, uv_max: V2, color: speedy2d::color::Color) {
+    fn push_quad(&mut self, uv_min: V2, uv_max: V2, color: Color) {
         // let vertex1 = Vertex { position: [-0.5, -0.5, 0.], tex_coords: [0.0, 1.0], color: [1., 0., 0., 1.] };
         // let vertex2 = Vertex { position: [-0.5,  0.5, 0.], tex_coords: [0.0, 0.0], color: [0., 1., 0., 1.] };
         // let vertex3 = Vertex { position: [ 0.5,  0.5, 0.], tex_coords: [1.0, 0.0], color: [0., 0., 1., 1.] };
         // let vertex4 = Vertex { position: [ 0.5, -0.5, 0.], tex_coords: [1.0, 1.0], color: [0., 0., 1., 1.] };
-        let vertex1 = Vertex { position: [0., 0., 0.], tex_coords: [uv_min.x, uv_max.y], color: [color.r(), color.g(), color.b(), color.a()] };
-        let vertex2 = Vertex { position: [0.,  1.0, 0.], tex_coords: [uv_min.x, uv_min.y], color: [color.r(), color.g(), color.b(), color.a()] };
-        let vertex3 = Vertex { position: [ 1.0,  1.0, 0.], tex_coords: [uv_max.x, uv_min.y], color: [color.r(), color.g(), color.b(), color.a()] };
-        let vertex4 = Vertex { position: [ 1.0, 0.0, 0.], tex_coords: [uv_max.x, uv_max.y], color: [color.r(), color.g(), color.b(), color.a()] };
+        let vertex1 = Vertex { position: [0., 0., 0.], tex_coords: [uv_min.x, uv_max.y], color: color.as_ref() };
+        let vertex2 = Vertex { position: [0.,  1.0, 0.], tex_coords: [uv_min.x, uv_min.y], color: color.as_ref() };
+        let vertex3 = Vertex { position: [ 1.0,  1.0, 0.], tex_coords: [uv_max.x, uv_min.y], color: color.as_ref() };
+        let vertex4 = Vertex { position: [ 1.0, 0.0, 0.], tex_coords: [uv_max.x, uv_max.y], color: color.as_ref() };
         self.write_vert_and_ind(&[vertex1, vertex2, vertex3, vertex4], &[0, 1, 2, 2, 3, 0]);
     }
-
-    // fn push_text_quad(&mut self, pos: Rectangle, uv: rusttype::Rect<f32>, color: speedy2d::color::Color) -> (Vec<Vertex>, Vec<u16>) {
-    //     // let vertex1 = Vertex { position: [-0.5, -0.5, 0.], tex_coords: [0.0, 1.0], color: [1., 0., 0., 1.] };
-    //     // let vertex2 = Vertex { position: [-0.5,  0.5, 0.], tex_coords: [0.0, 0.0], color: [0., 1., 0., 1.] };
-    //     // let vertex3 = Vertex { position: [ 0.5,  0.5, 0.], tex_coords: [1.0, 0.0], color: [0., 0., 1., 1.] };
-    //     // let vertex4 = Vertex { position: [ 0.5, -0.5, 0.], tex_coords: [1.0, 1.0], color: [0., 0., 1., 1.] };     
-    //     let rect_min = pos.top_left();
-    //     let rect_max = pos.bottom_right();
-    //     let uv_min = uv.min;
-    //     let uv_max = uv.max;
-    //     let vertex1 = Vertex { position: [rect_min.x, rect_min.y, 0.], tex_coords: [uv_min.x, uv_min.y], color: [color.r(), color.g(), color.b(), color.a()], };
-    //     let vertex2 = Vertex { position: [rect_min.x, rect_max.y, 0.], tex_coords: [uv_min.x, uv_max.y], color: [color.r(), color.g(), color.b(), color.a()], };
-    //     let vertex3 = Vertex { position: [rect_max.x, rect_max.y, 0.], tex_coords: [uv_max.x, uv_max.y], color: [color.r(), color.g(), color.b(), color.a()], };
-    //     let vertex4 = Vertex { position: [rect_max.x, rect_min.y, 0.], tex_coords: [uv_max.x, uv_min.y], color: [color.r(), color.g(), color.b(), color.a()], };
-
-    //     (vec![vertex1, vertex2, vertex3, vertex4], vec![0, 1, 2, 2, 3, 0])
-    // }
 }

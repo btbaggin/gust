@@ -1,11 +1,11 @@
 
 #![allow(dead_code)]
-use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock};
+// use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock};
 use crate::assets::{Fonts, request_font};
 use crate::{V2, Graphics};
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::graphics::{Font, TextLayout};
+use crate::graphics::{TextLayout, Color};
 
 pub struct LabeledValue<T: std::fmt::Display + Copy> {
     value: T,

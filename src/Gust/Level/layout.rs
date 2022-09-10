@@ -1,6 +1,6 @@
 use crate::V2;
 use cgmath::MetricSpace;
-use speedy2d::color::Color;
+use crate::graphics::Color;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate};
 use crate::messages::{MessageHandler, Messages};
 use crate::utils::Rectangle;

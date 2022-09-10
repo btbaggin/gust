@@ -4,6 +4,7 @@ use crate::job_system::ThreadSafeJobQueue;
 use crate::messages::{Messages, MessageHandler, MessageBus};
 use crate::ui::{Label, UiElement, HorizontalAlignment};
 use crate::input::Actions;
+use crate::graphics::Color;
 
 pub struct MainMenu {
     selected_index: usize,
@@ -21,7 +22,7 @@ impl MainMenu {
 }
 impl SceneBehavior for MainMenu {
     fn load(&mut self, queue: ThreadSafeJobQueue, _messages: &mut MessageBus, _entities: &mut EntityManager) {
-        self.audio_handle = Some(Sound::play(&queue, Sounds::Piano));
+        self.audio_handle = Some(Sound::repeat(&queue, Sounds::Piano));
         self.labels.push(Label::new(String::from("New Game"), Fonts::Regular, 64.));
         self.labels.push(Label::new(String::from("Settings"), Fonts::Regular, 64.));
         self.labels.push(Label::new(String::from("Exit"), Fonts::Regular, 64.));
@@ -53,7 +54,7 @@ impl SceneBehavior for MainMenu {
         let mut y = 0.;
 
         for (i, l) in self.labels.iter().enumerate() {
-            let color = if self.selected_index == i { speedy2d::color::Color::RED } else { speedy2d::color::Color::WHITE };
+            let color = if self.selected_index == i { Color::RED } else { Color::WHITE };
 
             let x = l.align_h(&crate::graphics::screen_rect(), HorizontalAlignment::Center);
             l.render(graphics, crate::V2::new(x, y), color);

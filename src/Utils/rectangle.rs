@@ -50,11 +50,3 @@ impl Rectangle {
         }
     }
 }
-
-impl std::convert::Into<speedy2d::shape::Rectangle> for Rectangle {
-    fn into(self) -> speedy2d::shape::Rectangle {
-        let top_left = self.top_left();
-        let bottom_right = self.bottom_right();
-        speedy2d::shape::Rectangle::from_tuples((top_left.x, top_left.y), (bottom_right.x, bottom_right.y))
-    }
-}
