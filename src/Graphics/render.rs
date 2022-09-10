@@ -48,10 +48,10 @@ impl crate::graphics::Graphics {
 
                 let uv_min = uv_rect.min;
                 let uv_max = uv_rect.max;
-                let vertex1 = Vertex { position: [rect_min.x, rect_min.y, 0.], tex_coords: [uv_min.x, uv_min.y], color: color.as_ref(), };
-                let vertex2 = Vertex { position: [rect_min.x, rect_max.y, 0.], tex_coords: [uv_min.x, uv_max.y], color: color.as_ref(), };
-                let vertex3 = Vertex { position: [rect_max.x, rect_max.y, 0.], tex_coords: [uv_max.x, uv_max.y], color: color.as_ref(), };
-                let vertex4 = Vertex { position: [rect_max.x, rect_min.y, 0.], tex_coords: [uv_max.x, uv_min.y], color: color.as_ref(), };
+                let vertex1 = Vertex { position: [rect_min.x, rect_min.y, self.z_index], tex_coords: [uv_min.x, uv_min.y], color: color.as_ref(), };
+                let vertex2 = Vertex { position: [rect_min.x, rect_max.y, self.z_index], tex_coords: [uv_min.x, uv_max.y], color: color.as_ref(), };
+                let vertex3 = Vertex { position: [rect_max.x, rect_max.y, self.z_index], tex_coords: [uv_max.x, uv_max.y], color: color.as_ref(), };
+                let vertex4 = Vertex { position: [rect_max.x, rect_min.y, self.z_index], tex_coords: [uv_max.x, uv_min.y], color: color.as_ref(), };
         
                 let base = (glyph_count * 4) as u16;
                 verts.append(&mut vec![vertex1, vertex2, vertex3, vertex4]);
@@ -74,7 +74,7 @@ impl crate::graphics::Graphics {
         let mut verts = vec!();
         for _ in 0..CIRCLE_FRAGMENTS {
             let position = [curr_angle.cos() as f32, curr_angle.sin() as f32, 0.];
-            let vertex = Vertex { position, tex_coords: [0., 0.], color: [color.r(), color.g(), color.b(), color.a()] };
+            let vertex = Vertex { position, tex_coords: [0., 0.], color: color.as_ref() };
             verts.push(vertex);
 
             curr_angle -= INCREMENT;
@@ -92,10 +92,10 @@ impl crate::graphics::Graphics {
         // let vertex2 = Vertex { position: [-0.5,  0.5, 0.], tex_coords: [0.0, 0.0], color: [0., 1., 0., 1.] };
         // let vertex3 = Vertex { position: [ 0.5,  0.5, 0.], tex_coords: [1.0, 0.0], color: [0., 0., 1., 1.] };
         // let vertex4 = Vertex { position: [ 0.5, -0.5, 0.], tex_coords: [1.0, 1.0], color: [0., 0., 1., 1.] };
-        let vertex1 = Vertex { position: [0., 0., 0.], tex_coords: [uv_min.x, uv_max.y], color: color.as_ref() };
-        let vertex2 = Vertex { position: [0.,  1.0, 0.], tex_coords: [uv_min.x, uv_min.y], color: color.as_ref() };
-        let vertex3 = Vertex { position: [ 1.0,  1.0, 0.], tex_coords: [uv_max.x, uv_min.y], color: color.as_ref() };
-        let vertex4 = Vertex { position: [ 1.0, 0.0, 0.], tex_coords: [uv_max.x, uv_max.y], color: color.as_ref() };
+        let vertex1 = Vertex { position: [0., 0., self.z_index], tex_coords: [uv_min.x, uv_max.y], color: color.as_ref() };
+        let vertex2 = Vertex { position: [0.,  1.0, self.z_index], tex_coords: [uv_min.x, uv_min.y], color: color.as_ref() };
+        let vertex3 = Vertex { position: [ 1.0,  1.0, self.z_index], tex_coords: [uv_max.x, uv_min.y], color: color.as_ref() };
+        let vertex4 = Vertex { position: [ 1.0, 0.0, self.z_index], tex_coords: [uv_max.x, uv_max.y], color: color.as_ref() };
         self.write_vert_and_ind(&[vertex1, vertex2, vertex3, vertex4], &[0, 1, 2, 2, 3, 0]);
     }
 }

@@ -48,10 +48,6 @@ use super::{AssetData, AssetSlot, AssetTypes, get_slot_mut, Images};
 pub fn request_image<'a>(graphics: &mut Graphics, image: Images) -> Option<&'a Texture> {
     let slot = get_slot_mut(AssetTypes::Image(image));
 
-    request_asset_image(graphics, slot)
-}
-
-pub fn request_asset_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot) -> Option<&'a Texture> {
     load_image(graphics, slot, None)
 }
 
@@ -64,7 +60,9 @@ fn load_image<'a>(graphics: &mut Graphics, slot: &'a mut AssetSlot, bounds: Opti
         }
     }
 
-    if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED {
+    if slot.state.load(Ordering::Acquire) == ASSET_STATE_LOADED &&
+       let AssetData::RawImage(_) = slot.data {
+        
         let data = std::mem::replace(&mut slot.data, AssetData::None);
         if let AssetData::RawImage(data) = data {
             let image = graphics.load_image(data);

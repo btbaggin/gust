@@ -4,7 +4,7 @@ use std::time::Instant;
 use crate::logger::{PanicLogEntry, info};
 use crate::assets::AssetSlot;
 use crate::job_system::{RawDataPointer, JobType, JobQueue};
-use crate::pooled_cache::PooledCacheIndex;
+use super::pooled_cache::PooledCacheIndex;
 use super::{AssetData, ASSET_STATE_LOADED, AssetTypes, get_slot_mut, get_slot_index, Sounds, asset_cache};
 
 mod sound_list;

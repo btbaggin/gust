@@ -66,6 +66,7 @@ pub struct Graphics {
     objects: Vec<RenderObject>,
     vertex_count: usize,
     index_count: usize,
+    z_index: f32,
 }
 impl Graphics {
     pub fn load_image(&self, image: glium::texture::RawImage2d<u8>) -> ImageHandle {
@@ -91,6 +92,11 @@ impl Graphics {
                 tex: texture
             };
 
+            let parameters = glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                ..Default::default()
+            };
+
             match o.object_type {
                 // RenderObjectTypes::Triangle => {
                 //     let verts = get_vertex_slice(&o, &self.vertices, 3);
@@ -100,11 +106,16 @@ impl Graphics {
                 RenderObjectTypes::Quad => {
                     let verts = get_vertex_slice(&o, &self.vertices, 4);
                     let inds = get_index_slice(&o, &self.indices, 6);
-                    target.draw(verts, &inds, &self.program, &uniforms, &Default::default()).unwrap();
+                    target.draw(verts, &inds, &self.program, &uniforms, &parameters).unwrap();
                 }
                 RenderObjectTypes::Circle => {
                     let verts = get_vertex_slice(&o, &self.vertices, CIRCLE_FRAGMENTS);
-                    target.draw(verts, glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan), &self.program, &uniforms, &Default::default()).unwrap();
+                    target.draw(verts, 
+                                glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan),
+                                &self.program,
+                                &uniforms,
+                                &parameters
+                            ).unwrap();
                 },
                 RenderObjectTypes::Text(quad_count) => {
                     let uniforms = uniform! {
@@ -119,10 +130,7 @@ impl Graphics {
                         &inds,
                         &self.font_program,
                         &uniforms,
-                        &glium::DrawParameters {
-                            blend: glium::Blend::alpha_blending(),
-                            ..Default::default()
-                        }
+                        &parameters
                     ).unwrap();
                 }
             };
@@ -132,6 +140,7 @@ impl Graphics {
         self.index_count = 0;
         self.vertex_count = 0;
         self.objects.clear();
+        self.z_index = 0.;
     }
 
     fn mat_to_array(matrix: &Matrix4<f32>) -> [[f32; 4]; 4] {
@@ -184,6 +193,10 @@ impl Graphics {
     pub fn window_size(&self) -> V2 {
         let size = self.display.gl_window().window().inner_size();
         crate::V2::new(size.width as f32, size.height as f32)
+    }
+
+    pub fn z_index(&mut self, z_index: f32) {
+        self.z_index = z_index;
     }
 }
 

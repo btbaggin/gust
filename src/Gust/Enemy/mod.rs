@@ -39,7 +39,7 @@ impl Enemy {
         let health = 100;
         Enemy { 
             health,
-            health_bar: health_bar::HealthBar::new(health),
+            health_bar: health_bar::HealthBar::new(health as f32),
             progress: 0.,
             animation
         }
