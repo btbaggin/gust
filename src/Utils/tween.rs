@@ -1,7 +1,4 @@
 #![allow(dead_code)]
-use std::ops::{Add, Mul, Sub};
-use std::cmp::PartialEq;
-
 pub enum TweenType {
     Lerp,
     Slerp,
@@ -15,7 +12,7 @@ pub struct Tween {
     algorithm: TweenType
 }
 impl Tween {
-    pub fn lerp(from: f32, to: f32) -> Tween {
+    pub fn new_lerp(from: f32, to: f32) -> Tween {
         Tween { 
             from,
             to,
@@ -24,7 +21,7 @@ impl Tween {
             algorithm: TweenType::Lerp
         }
     }
-    pub fn slerp(from: f32, to: f32) -> Tween {
+    pub fn new_slerp(from: f32, to: f32) -> Tween {
         Tween { 
             from,
             to,
@@ -32,6 +29,10 @@ impl Tween {
             amount: 0.,
             algorithm: TweenType::Slerp
         }
+    }
+
+    pub fn lerp(value: f32, to: f32, delta_time: f32) -> f32 {
+        value + (to - value) * delta_time
     }
 
     pub fn update(&mut self, delta_time: f32) -> bool {

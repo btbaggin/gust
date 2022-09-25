@@ -143,6 +143,9 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 
                 entities.dispose_entities(&mut messages);
                 quad_tree.update_positions(entities);
+                let root = crate::ui::root();
+                root.clear();
+                root.create_widgets();    
 
                 sleep_until_frame_end(now, expected_seconds_per_frame);
             },

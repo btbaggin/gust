@@ -63,6 +63,7 @@ macro_rules! settings_enum {
 
 settings_enum! {
     pub enum SettingNames {
+        LogLevel("log_level") = SettingValue::String(String::from("Trace")),
         ActionLeft("action_left") = SettingValue::String(String::from("Left")),
         ActionRight("action_right") = SettingValue::String(String::from("Right")),
         ActionUp("action_up") = SettingValue::String(String::from("Up")),

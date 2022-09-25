@@ -2,21 +2,28 @@
 #![allow(dead_code)]
 // use speedy2d::{color::Color, font::TextOptions, font::FormattedTextBlock};
 use crate::assets::{Fonts, request_font};
-use crate::{V2, Graphics};
+use crate::{V2, Graphics, UpdateState};
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::graphics::{TextLayout, Color};
+use crate::ui::WidgetHelper;
+use crate::utils::Rectangle;
 
 pub struct LabeledValue<T: std::fmt::Display + Copy> {
     value: T,
     label: &'static str,
     font: Fonts,
     size: f32,
+    color: Color,
     layout: RefCell<Option<Rc<TextLayout>>>,
 }
 impl<T: std::fmt::Display + Copy> LabeledValue<T> {
-    pub fn new(label: &'static str, value: T, font: Fonts, size: f32) -> LabeledValue<T> {
-        LabeledValue { value, label, font, size, layout: RefCell::new(None) }
+    pub fn new(label: &'static str, value: T, font: Fonts, size: f32, color: Color) -> LabeledValue<T> {
+        LabeledValue { value, label, font, size, color, layout: RefCell::new(None) }
+    }
+
+    pub fn set_color(&mut self, color: Color) {
+        self.color = color;
     }
 
     pub fn value(&self) -> T {
@@ -27,18 +34,6 @@ impl<T: std::fmt::Display + Copy> LabeledValue<T> {
         self.layout.replace(None);
     }
 
-    pub fn render(&self, graphics: &mut Graphics, position: V2, color: Color) {
-        if let Some(font) = request_font(graphics, self.font) {
-            let mut layout = self.layout.borrow_mut();
-            if layout.is_none() {
-                let text = format!("{}: {}", self.label, self.value);
-                *layout = Some(font.layout_text(graphics, &text, self.size));
-            }
-            graphics.draw_text(position, color, layout.as_ref().unwrap());
-        }
-    }
-}
-impl<T: std::fmt::Display + Copy> super::UiElement for LabeledValue<T> {
     fn size(&self) -> V2 {
         let layout = self.layout.borrow();
         match &*layout {
@@ -46,4 +41,30 @@ impl<T: std::fmt::Display + Copy> super::UiElement for LabeledValue<T> {
             None => V2::new(0., 0.),
         }    
     }
+}
+impl<T: std::fmt::Display + Copy + 'static> super::UiElement for LabeledValue<T> {
+    fn as_any(&self) -> &dyn std::any::Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
+
+    fn layout(&mut self, _rect: &Rectangle, _helper: &mut WidgetHelper) -> V2 {
+        let layout = self.layout.borrow();
+        match &*layout {
+            Some(l) => l.size(),
+            None => V2::new(0., 0.),
+        }  
+    }
+
+    fn render(&self, graphics: &mut Graphics, rect: &Rectangle) {
+        if let Some(font) = request_font(graphics, self.font) {
+            let position = rect.top_left();
+            let mut layout = self.layout.borrow_mut();
+            if layout.is_none() {
+                let text = format!("{}: {}", self.label, self.value);
+                *layout = Some(font.layout_text(graphics, &text, self.size));
+            }
+            graphics.draw_text(position, self.color, layout.as_ref().unwrap());
+        }
+    }
+
+    fn update(&mut self, _state: &mut UpdateState, helper: &mut WidgetHelper, _rect: &Rectangle) { }
 }

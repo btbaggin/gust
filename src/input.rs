@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::cell::RefCell;
 use crate::V2;
 use crate::logger::PanicLogEntry;
 use crate::settings::{SettingsFile, SettingNames};
@@ -151,7 +152,10 @@ pub enum Actions {
     Faster,
 }
 
+const U64_BITS: usize = std::mem::size_of::<u64>() * 8;
+const CONSUME_SIZE: usize = 256 / U64_BITS;
 pub struct Input {
+    consumed_input: RefCell<[u64; CONSUME_SIZE]>,
     previous_input: [u8; 256],
     input: [u8; 256],
     map: HashMap<Actions, Key>,
@@ -161,30 +165,57 @@ pub struct Input {
 impl Input {
     pub fn new() -> Input {
         Input {
+            consumed_input: RefCell::new([0; CONSUME_SIZE]),
             previous_input: [0; 256],
             input: [0; 256],
             map: HashMap::new(),
             mouse_position: V2::new(0., 0.),
         }
     }
-    fn key_down(input: &[u8; 256], key: Key) -> bool { input[key as usize] & 0x80 != 0 }
-    fn key_up(input: &[u8; 256], key: Key) -> bool { input[key as usize] & 0x80 == 0 }
+    fn key_down(input: &[u8; 256], consumed: &RefCell<[u64; CONSUME_SIZE]>, key: Key) -> bool {
+        if Self::is_consumed(consumed, key) { return false; }
+        input[key as usize] & 0x80 != 0
+    }
+    fn key_up(input: &[u8; 256], consumed: &RefCell<[u64; CONSUME_SIZE]>, key: Key) -> bool {
+        if Self::is_consumed(consumed, key) { return false; }
+        input[key as usize] & 0x80 == 0
+    }
+    fn consume_input(input: &RefCell<[u64; CONSUME_SIZE]>, key: Key) {
+        let mut input = input.borrow_mut();
+        let index = key as usize / U64_BITS;
+        let bit = key as usize % U64_BITS;
 
-    pub fn action_down(&self, action: &Actions) -> bool {
-        let key = self.map.get(action).expect("All actions should be in input map");
-        Self::key_down(&self.input, *key)
+        input[index] |= 1 << bit;
     }
-    pub fn action_up(&self, action: &Actions) -> bool {
-        let key = self.map.get(action).expect("All actions should be in input map");
-        Self::key_up(&self.input, *key)
+    fn is_consumed(input: &RefCell<[u64; CONSUME_SIZE]>, key: Key) -> bool {
+        let input = input.borrow();
+        let index = key as usize / U64_BITS;
+        let bit = key as usize % U64_BITS;
+
+        input[index] & 1 << bit != 0
     }
-    pub fn action_pressed(&self, action: &Actions) -> bool {
-        let key = self.map.get(action).expect("All actions should be in input map");
-        Self::key_up(&self.previous_input, *key) && Self::key_down(&self.input, *key)
+
+    pub fn consume_action(&self, action: Actions) {
+        let key = self.map.get(&action).expect("All actions should be in input map");
+        Self::consume_input(&self.consumed_input, *key)
     }
-    pub fn action_released(&self, action: &Actions) -> bool {
-        let key = self.map.get(action).expect("All actions should be in input map");
-        Self::key_down(&self.previous_input, *key) && Self::key_up(&self.input, *key)
+    pub fn action_down(&self, action: Actions) -> bool {
+        let key = self.map.get(&action).expect("All actions should be in input map");
+        Self::key_down(&self.input, &self.consumed_input, *key)
+    }
+    pub fn action_up(&self, action: Actions) -> bool {
+        let key = self.map.get(&action).expect("All actions should be in input map");
+        Self::key_up(&self.input, &self.consumed_input, *key)
+    }
+    pub fn action_pressed(&self, action: Actions) -> bool {
+        let key = self.map.get(&action).expect("All actions should be in input map");
+        Self::key_up(&self.previous_input, &self.consumed_input, *key) &&
+            Self::key_down(&self.input, &self.consumed_input, *key)
+    }
+    pub fn action_released(&self, action: Actions) -> bool {
+        let key = self.map.get(&action).expect("All actions should be in input map");
+        Self::key_down(&self.previous_input, &self.consumed_input, *key) &&
+            Self::key_up(&self.input, &self.consumed_input, *key)
     }
     pub fn mouse_pos(&self) -> V2 {
         self.mouse_position
@@ -194,6 +225,10 @@ impl Input {
 pub fn gather(input: &mut Input, position: V2) {
     input.previous_input = input.input;
     input.mouse_position = position;
+    let mut consumed = input.consumed_input.borrow_mut();
+    for i in consumed.iter_mut() {
+        *i = 0;
+    }
 
     #[cfg(target_os = "windows")]
     {

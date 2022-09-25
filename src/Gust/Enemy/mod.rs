@@ -45,8 +45,8 @@ impl Enemy {
         }
     }
 
-    fn take_damage(&mut self, damage: u32) {
-        self.health -= u32::min(self.health, damage);
+    fn take_damage(&mut self, damage: f32) {
+        self.health -= u32::min(self.health, damage as u32);
         self.health_bar.set_value(self.health);
     }
 }

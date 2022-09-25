@@ -23,19 +23,22 @@ impl<'a> UpdateState<'a> {
         let mut m = self.message_bus.borrow_mut();
         m.send(kind);
     }
-    pub fn action_down(&self, action: &Actions) -> bool {
+    pub fn action_down(&self, action: Actions) -> bool {
        self.input.action_down(action)
     }
-    pub fn action_up(&self, action: &Actions) -> bool {
+    pub fn action_up(&self, action: Actions) -> bool {
         self.input.action_up(action)
     }
-    pub fn action_pressed(&self, action: &Actions) -> bool {
+    pub fn action_pressed(&self, action: Actions) -> bool {
         self.input.action_pressed(action)
     }
-    pub fn action_released(&self, action: &Actions) -> bool {
+    pub fn action_released(&self, action: Actions) -> bool {
         self.input.action_released(action)
     }
     pub fn mouse_pos(&self) -> V2 {
         self.input.mouse_pos()
+    }
+    pub fn consume_action(&self, action: Actions) {
+        self.input.consume_action(action)
     }
 }

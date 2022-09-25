@@ -1,7 +1,7 @@
 use crate::Graphics;
 use super::{EntityManager, UpdateState};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{MessageBus, SharedMessageBus};
+use crate::messages::{SharedMessageBus};
 
 pub enum SceneLoad {
     Load(Box<dyn SceneBehavior>),
@@ -19,7 +19,7 @@ impl Scene {
     
     pub fn load(&mut self, queue: ThreadSafeJobQueue, messages: SharedMessageBus, entities: &mut EntityManager) {
         let mut m = messages.borrow_mut();
-        self.behavior.load(queue, &mut m, entities);
+        self.behavior.load(queue, entities);
         self.behavior.register(&mut m)
     }
 
@@ -28,13 +28,24 @@ impl Scene {
         self.behavior.unload();
         self.behavior.unregister(&mut m);
     
+        // Unload entities
         for h in entities.iter_handles() {
             let entity = entities.get_mut(&h).unwrap();
             entity.destroy();
         }
+
+        // Unload UI
+        let root = crate::ui::root();
+        for c in root.children_mut() {
+            c.destroy();
+        }
     }
 
     pub fn update(&mut self, state: &mut crate::UpdateState) -> bool {
+        let root = crate::ui::root();
+        root.layout(&crate::graphics::screen_rect());
+        root.update(state);
+
         let load = self.behavior.update(state);
         
         match load {
@@ -66,11 +77,14 @@ impl Scene {
             entity.behavior.render(entity, graphics);
         }
         self.behavior.render(graphics);
+
+        let root = crate::ui::root();
+        root.render(graphics, &crate::graphics::screen_rect())
     }
 }
 
 pub trait SceneBehavior: crate::messages::MessageHandler {
-    fn load(&mut self, queue: ThreadSafeJobQueue, messages: &mut MessageBus, entities: &mut EntityManager);
+    fn load(&mut self, queue: ThreadSafeJobQueue, entities: &mut EntityManager);
     fn unload(&mut self);
     fn update(&mut self, update_state: &mut UpdateState) -> SceneLoad;
     fn render(&self, graphics: &mut Graphics);

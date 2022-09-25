@@ -1,4 +1,4 @@
-#![feature(maybe_uninit_array_assume_init)]
+#![feature(maybe_uninit_array_assume_init, new_uninit)]
 
 pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
@@ -28,12 +28,11 @@ mod generational_array;
 pub use update_state::UpdateState;
 
 
-
 /* TODO
  * Scene transitions
  * RigidBodies should be offset by half scale
+ * Have UI elements handle messages
  */
-
 
 struct GameState {
     settings: settings::SettingsFile,
@@ -53,8 +52,8 @@ impl game_loop::WindowHandler for GameState {
         
         self.is_playing = scene.update(state);
 
-        if state.action_pressed(&Actions::Slower) { self.delta_time_scale -= 0.1; }
-        if state.action_pressed(&Actions::Faster) { self.delta_time_scale += 0.1; }
+        if state.action_pressed(Actions::Slower) { self.delta_time_scale -= 0.1; }
+        if state.action_pressed(Actions::Faster) { self.delta_time_scale += 0.1; }
         self.delta_time_scale = self.delta_time_scale.clamp(0., 1.);
         self.is_playing
     }
@@ -80,6 +79,8 @@ fn main() {
         Ok(settings) => settings,
         Err(_) => settings::SettingsFile::default()
     };
+    logger::set_log_level(&settings.get_str(settings::SettingNames::LogLevel));
+
     let mut input = input::Input::new();
     crate::input::load_input_settings(&mut input, &settings);
 

@@ -7,18 +7,18 @@ use cgmath::InnerSpace;
 
 pub struct Bullet { 
     speed: f32,
-    damage: u32,
+    damage: f32,
     vector: V2,
 }
 impl Bullet {
-    pub fn fire(speed: f32, damage: u32, target: V2) -> Bullet {
+    pub fn fire(speed: f32, damage: f32, target: V2) -> Bullet {
         Bullet {
             speed,
             damage,
             vector: target,
         }
     }
-    pub fn damage(&self) -> u32 {
+    pub fn damage(&self) -> f32 {
         self.damage
     }
 }

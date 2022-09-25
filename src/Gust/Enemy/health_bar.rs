@@ -10,7 +10,7 @@ impl HealthBar {
     pub fn new(max: f32) -> HealthBar {
         HealthBar {
             max,
-            current: Tween::slerp(max, max),
+            current: Tween::new_slerp(max, max),
         }
     }
     pub fn set_value(&mut self, current: u32) {

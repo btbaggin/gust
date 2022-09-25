@@ -17,10 +17,11 @@ impl QuadTree {
     pub fn new(bounds: Rectangle) -> QuadTree {
         QuadTree {
             root: QuadTreeNode::new(bounds),
-            nodes: init_optional_array_to_blank(),  //TODO this whole array could probably be initialized
+            nodes: init_optional_array_to_blank(),
         }
     }
 
+    // TODO this should be split to return handles or the behaviors
     pub fn within_distance<T: 'static>(&self, position: V2, distance: f32, entities: &EntityManager) -> Vec<EntityHandle> {
         let rect = Rectangle::new(V2::new(position.x - distance, position.y - distance), V2::new(distance * 2., distance * 2.));
         let close = self.find(rect);

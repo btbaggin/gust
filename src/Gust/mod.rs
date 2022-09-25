@@ -2,6 +2,7 @@ mod player;
 mod enemy;
 mod level;
 mod tower;
+mod cards;
 pub mod main_menu;
 pub mod game_data;
 
