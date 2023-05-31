@@ -1,6 +1,6 @@
 use crate::V2;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityHandle};
-use crate::messages::{MessageHandler, Messages};
+use crate::messages::{MessageHandler, Messages, MessageContext};
 use crate::utils::Timer;
 use cgmath::MetricSpace;
 
@@ -51,7 +51,7 @@ impl Tower {
 
         if self.target.is_none() {
             let targets = scene.within_distance::<crate::gust::enemy::Enemy>(position, self.range, manager);
-            if targets.len() > 0 {
+            if !targets.is_empty() {
                 self.target = Some(targets[0])
             }
         }
@@ -70,7 +70,7 @@ impl crate::entity::EntityBehavior for Tower {
             self.find_target(e.position(), state.entities, state.quad_tree);
             if let Some(t) = self.target {
                 let target = state.entities.get(&t).unwrap().position;
-                state.entities.create_at(bullet::Bullet::fire(500., self.damage, target), e.position());
+                state.entities.create_at(bullet::Bullet::fire(&state.queue, 500., self.damage, target), e.position());
             }
 
         }
@@ -81,5 +81,5 @@ impl crate::entity::EntityBehavior for Tower {
 }
 impl MessageHandler for Tower {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Messages) {}
+    fn process(&mut self, _message: &Messages, _context: &mut MessageContext) {}
 }

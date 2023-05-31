@@ -1,4 +1,4 @@
-#![feature(maybe_uninit_array_assume_init, new_uninit)]
+#![feature(maybe_uninit_array_assume_init, new_uninit, let_chains)]
 
 pub type V2 = cgmath::Vector2<f32>;
 pub type V2U = cgmath::Vector2<u32>;
@@ -42,15 +42,15 @@ struct GameState {
 }
 
 impl game_loop::WindowHandler for GameState {
-    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager) {
-        scene_manager.render(graphics, entities);
+    fn on_render(&mut self, graphics: &mut Graphics, root: &crate::ui::Widget, scene: &Scene, entities: &EntityManager) {
+        scene.render(graphics, root, entities);
     }
 
-    fn on_update(&mut self, state: &mut UpdateState, scene: &mut Scene) -> bool {
+    fn on_update(&mut self, state: &mut UpdateState, root: &mut crate::ui::Widget, scene: &mut Scene) -> bool {
         settings::update_settings(&mut self.settings).log("Unable to load new settings");
         state.delta_time *= self.delta_time_scale;
         
-        self.is_playing = scene.update(state);
+        self.is_playing = scene.update(state, root);
 
         if state.action_pressed(Actions::Slower) { self.delta_time_scale -= 0.1; }
         if state.action_pressed(Actions::Faster) { self.delta_time_scale += 0.1; }

@@ -62,6 +62,7 @@ impl<T: Sized, const C: usize> GenerationalArray<T, C> {
             }
         };
 
+        //TODO handle full
         self.data[index] = Some(value);
         self.allocated[index] = self.version[index];
         
@@ -95,6 +96,9 @@ impl<T: Sized, const C: usize> GenerationalArray<T, C> {
         }
         ret
     }
+}
+impl<T: Sized, const C: usize> Default for GenerationalArray<T, C> {
+    fn default() -> Self { Self::new() }
 }
 
 

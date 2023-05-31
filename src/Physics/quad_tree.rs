@@ -138,12 +138,10 @@ impl QuadTreeNode {
             } else {
                 return_index_if_rect_fits(V2::new(mid_point.x + half_size.x, mid_point.y), bottom_right, 1)
             }
+        } else if top_left.x < mid_point.x {
+            return_index_if_rect_fits(V2::new(mid_point.x, mid_point.y + half_size.y), bottom_right, 2)
         } else {
-            if top_left.x < mid_point.x {
-                return_index_if_rect_fits(V2::new(mid_point.x, mid_point.y + half_size.y), bottom_right, 2)
-            } else {
-                return_index_if_rect_fits(mid_point + half_size, bottom_right, 3)
-            }
+            return_index_if_rect_fits(mid_point + half_size, bottom_right, 3)
         }
     }
 

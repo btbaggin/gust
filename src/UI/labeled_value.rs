@@ -46,12 +46,15 @@ impl<T: std::fmt::Display + Copy + 'static> super::UiElement for LabeledValue<T>
     fn as_any(&self) -> &dyn std::any::Any { self }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
-    fn layout(&mut self, _rect: &Rectangle, _helper: &mut WidgetHelper) -> V2 {
+    fn layout(&mut self, rect: &Rectangle, helper: &mut WidgetHelper) -> Rectangle {
         let layout = self.layout.borrow();
-        match &*layout {
+        let size = match &*layout {
             Some(l) => l.size(),
             None => V2::new(0., 0.),
-        }  
+        };
+
+        let pos = helper.align(rect, &size);
+        Rectangle::new(pos, size)
     }
 
     fn render(&self, graphics: &mut Graphics, rect: &Rectangle) {
@@ -66,5 +69,5 @@ impl<T: std::fmt::Display + Copy + 'static> super::UiElement for LabeledValue<T>
         }
     }
 
-    fn update(&mut self, _state: &mut UpdateState, helper: &mut WidgetHelper, _rect: &Rectangle) { }
+    fn update(&mut self, _state: &mut UpdateState, _helper: &mut WidgetHelper, _rect: &Rectangle) { }
 }

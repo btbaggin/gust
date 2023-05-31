@@ -1,5 +1,5 @@
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
-use crate::messages::{MessageHandler, Messages};
+use crate::messages::{MessageHandler, Messages, MessageContext};
 use crate::graphics::Color;
 
 pub struct Indicator { 
@@ -24,5 +24,5 @@ impl EntityBehavior for Indicator {
 }
 impl MessageHandler for Indicator {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Messages) {}
+    fn process(&mut self, _message: &Messages, _context: &mut MessageContext) {}
 }

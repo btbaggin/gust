@@ -1,12 +1,10 @@
 use crate::entity::{SceneBehavior, SceneLoad, EntityManager};
 use crate::assets::{Sound, Sounds, SoundHandle, SoundStatus, Fonts};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Messages, MessageHandler};
+use crate::messages::{Messages, MessageHandler, MessageContext};
 use crate::ui::{Label, DockContainer};
 use crate::input::Actions;
 use crate::graphics::Color;
-use std::rc::Rc;
-use std::cell::RefCell;
 
 pub struct MainMenu {
     selected_index: usize,
@@ -22,8 +20,7 @@ impl MainMenu {
         }
     }
 
-    fn move_index(&mut self, up: bool) {
-        let root = crate::ui::root();
+    fn move_index(&mut self, up: bool, root: &mut crate::ui::Widget) {
         let l = root.find_mut::<Label>(self.labels[self.selected_index]).unwrap();
         l.set_color(Color::WHITE);
 
@@ -38,8 +35,7 @@ impl MainMenu {
     }
 }
 impl SceneBehavior for MainMenu {
-    fn load(&mut self, queue: ThreadSafeJobQueue, _entities: &mut EntityManager) {
-        let root = crate::ui::root();
+    fn load(&mut self, queue: ThreadSafeJobQueue, _entities: &mut EntityManager, root: &mut crate::ui::Widget) {
         root.with_child(DockContainer::vertical(0.5, 0.5, None))
             .add_named_child(Label::new(String::from("New Game"), Fonts::Regular, 64., Color::RED), self.labels[0])
             .add_named_child(Label::new(String::from("Settings"), Fonts::Regular, 64., Color::WHITE), self.labels[1])
@@ -49,16 +45,17 @@ impl SceneBehavior for MainMenu {
     }
 
     fn unload(&mut self) {
-        let sound = Sound::get_mut(self.audio_handle.unwrap()).unwrap();
-        sound.set_status(SoundStatus::Stopped);
+        Sound::set_status(self.audio_handle.unwrap(), SoundStatus::Stopped);
     }
 
-    fn update(&mut self, state: &mut crate::UpdateState) -> SceneLoad {
+    fn update(&mut self, state: &mut crate::UpdateState, root: &mut crate::ui::Widget) -> SceneLoad {
         if state.action_pressed(Actions::Up) && self.selected_index > 0 { 
-            self.move_index(true);
-        }
+            self.move_index(true, root);
+            crate::assets::Sound::play(&state.queue, Sounds::Shoot);
+    }
         if state.action_pressed(Actions::Down) && self.selected_index < self.labels.len() - 1 { 
-            self.move_index(false);
+            self.move_index(false, root);
+            crate::assets::Sound::play(&state.queue, Sounds::Shoot);
         }
 
         if state.action_pressed(Actions::Accept) {
@@ -76,5 +73,5 @@ impl SceneBehavior for MainMenu {
 }
 impl MessageHandler for MainMenu {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Messages) {}
+    fn process(&mut self, _message: &Messages, _context: &mut MessageContext) {}
 }

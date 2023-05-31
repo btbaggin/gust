@@ -104,12 +104,12 @@ impl Graphics {
                 //     target.draw(verts, &inds, &self.program, &uniforms, &Default::default()).unwrap();
                 // }
                 RenderObjectTypes::Quad => {
-                    let verts = get_vertex_slice(&o, &self.vertices, 4);
-                    let inds = get_index_slice(&o, &self.indices, 6);
+                    let verts = get_vertex_slice(o, &self.vertices, 4);
+                    let inds = get_index_slice(o, &self.indices, 6);
                     target.draw(verts, &inds, &self.program, &uniforms, &parameters).unwrap();
                 }
                 RenderObjectTypes::Circle => {
-                    let verts = get_vertex_slice(&o, &self.vertices, CIRCLE_FRAGMENTS);
+                    let verts = get_vertex_slice(o, &self.vertices, CIRCLE_FRAGMENTS);
                     target.draw(verts, 
                                 glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan),
                                 &self.program,
@@ -124,8 +124,8 @@ impl Graphics {
                         tex: texture.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest),
                     };
 
-                    let verts = get_vertex_slice(&o, &self.vertices, 4 * quad_count);
-                    let inds = get_index_slice(&o, &self.indices, 6 * quad_count);
+                    let verts = get_vertex_slice(o, &self.vertices, 4 * quad_count);
+                    let inds = get_index_slice(o, &self.indices, 6 * quad_count);
                     target.draw(verts, 
                         &inds,
                         &self.font_program,
@@ -150,13 +150,13 @@ impl Graphics {
     fn write_vert_and_ind(&mut self, verts: &[Vertex], inds: &[u16]) {
         let vertices = self.vertices.slice_mut(self.vertex_count..(self.vertex_count + verts.len()))
             .expect("Vertex count has exceeded max vertex count");
-        vertices.write(&verts);
+        vertices.write(verts);
         self.vertex_count += verts.len();
 
-        if inds.len() > 0 {
+        if !inds.is_empty() {
             let indices = self.indices.slice_mut(self.index_count..(self.index_count + inds.len()))
                 .expect("Index count has exceed max index count");
-            indices.write(&inds);
+            indices.write(inds);
             self.index_count += inds.len();
         }
     }
@@ -208,5 +208,5 @@ pub fn screen_rect() -> Rectangle {
 
 pub fn on_screen(bounds: &Rectangle) -> bool {
     let rect = screen_rect();
-    rect.intersect(&bounds).is_some()
+    rect.intersect(bounds).is_some()
 }

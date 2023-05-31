@@ -6,8 +6,6 @@
  use std::collections::HashMap;
  use std::any::TypeId;
 
-// mod iter;
-// pub use iter::Iter;
 crate::singleton!(entity_manager: EntityManager = EntityManager::new());
 
 pub enum EntityCreationOptions {
@@ -72,10 +70,10 @@ impl EntityManager {
             }
         }
     }
-    pub fn get<'a>(&self, handle: &'a EntityHandle) -> Option<&Entity> {
+    pub fn get(&self, handle: &EntityHandle) -> Option<&Entity> {
         self.entities.get(handle)
     }
-    pub fn get_mut<'a>(&mut self, handle: &'a EntityHandle) -> Option<&mut Entity> {
+    pub fn get_mut(&mut self, handle: &EntityHandle) -> Option<&mut Entity> {
         self.entities.get_mut(handle)
     }
 
@@ -98,4 +96,7 @@ impl EntityManager {
         }
         None
     }
+}
+impl Default for EntityManager {
+    fn default() -> Self { Self::new() }
 }

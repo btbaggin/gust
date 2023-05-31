@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::cell::RefCell;
+use std::cmp::Eq;
+use std::hash::Hash;
 use crate::V2;
 use crate::logger::PanicLogEntry;
 use crate::settings::{SettingsFile, SettingNames};
@@ -150,20 +152,21 @@ pub enum Actions {
     Select,
     Slower,
     Faster,
+    SpawnTower1,
 }
 
 const U64_BITS: usize = std::mem::size_of::<u64>() * 8;
 const CONSUME_SIZE: usize = 256 / U64_BITS;
-pub struct Input {
+pub struct Input<T: Eq + Hash> {
     consumed_input: RefCell<[u64; CONSUME_SIZE]>,
     previous_input: [u8; 256],
     input: [u8; 256],
-    map: HashMap<Actions, Key>,
+    map: HashMap<T, Key>,
     mouse_position: V2,
 }
 #[allow(dead_code)]
-impl Input {
-    pub fn new() -> Input {
+impl<T: Eq + Hash> Input<T> {
+    pub fn new() -> Input<T> {
         Input {
             consumed_input: RefCell::new([0; CONSUME_SIZE]),
             previous_input: [0; 256],
@@ -195,24 +198,24 @@ impl Input {
         input[index] & 1 << bit != 0
     }
 
-    pub fn consume_action(&self, action: Actions) {
+    pub fn consume_action(&self, action: T) {
         let key = self.map.get(&action).expect("All actions should be in input map");
         Self::consume_input(&self.consumed_input, *key)
     }
-    pub fn action_down(&self, action: Actions) -> bool {
+    pub fn action_down(&self, action: T) -> bool {
         let key = self.map.get(&action).expect("All actions should be in input map");
         Self::key_down(&self.input, &self.consumed_input, *key)
     }
-    pub fn action_up(&self, action: Actions) -> bool {
+    pub fn action_up(&self, action: T) -> bool {
         let key = self.map.get(&action).expect("All actions should be in input map");
         Self::key_up(&self.input, &self.consumed_input, *key)
     }
-    pub fn action_pressed(&self, action: Actions) -> bool {
+    pub fn action_pressed(&self, action: T) -> bool {
         let key = self.map.get(&action).expect("All actions should be in input map");
         Self::key_up(&self.previous_input, &self.consumed_input, *key) &&
             Self::key_down(&self.input, &self.consumed_input, *key)
     }
-    pub fn action_released(&self, action: Actions) -> bool {
+    pub fn action_released(&self, action: T) -> bool {
         let key = self.map.get(&action).expect("All actions should be in input map");
         Self::key_down(&self.previous_input, &self.consumed_input, *key) &&
             Self::key_up(&self.input, &self.consumed_input, *key)
@@ -221,8 +224,11 @@ impl Input {
         self.mouse_position
     }
 }
+impl<T: Eq + Hash> Default for Input<T> {
+    fn default() -> Self { Self::new() }
+}
 
-pub fn gather(input: &mut Input, position: V2) {
+pub fn gather(input: &mut Input<Actions>, position: V2) {
     input.previous_input = input.input;
     input.mouse_position = position;
     let mut consumed = input.consumed_input.borrow_mut();
@@ -237,8 +243,8 @@ pub fn gather(input: &mut Input, position: V2) {
     }
 }
 
-pub fn load_input_settings(input: &mut Input, settings: &SettingsFile) {
-    fn add_action_from_settings(input: &mut Input, settings: &SettingsFile, setting: SettingNames, action: Actions) {
+pub fn load_input_settings(input: &mut Input<Actions>, settings: &SettingsFile) {
+    fn add_action_from_settings(input: &mut Input<Actions>, settings: &SettingsFile, setting: SettingNames, action: Actions) {
         let setting = settings.get_str(setting);
         let key = Key::from_str(&setting).log_and_panic();
         input.map.insert(action, key);
@@ -253,4 +259,5 @@ pub fn load_input_settings(input: &mut Input, settings: &SettingsFile) {
     input.map.insert(Actions::Faster, Key::Plus);
     input.map.insert(Actions::Accept, Key::Enter);
     input.map.insert(Actions::Select, Key::MouseLeft);
+    input.map.insert(Actions::SpawnTower1, Key::One);
 }

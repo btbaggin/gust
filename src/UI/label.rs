@@ -15,10 +15,15 @@ pub struct Label {
     font: Fonts,
     color: Color,
     layout: RefCell<Option<Rc<TextLayout>>>,
+    wrapping: bool,
+    cached_size: f32
 }
 impl Label {
     pub fn new(text: String, font: Fonts, size: f32, color: Color) -> Label {
-        Label { text, font, size, color, layout: RefCell::new(None) }
+        Label { text, font, size, color, layout: RefCell::new(None), wrapping: false, cached_size: 0. }
+    }
+    pub fn wrapping(text: String, font: Fonts, size: f32, color: Color) -> Label {
+        Label { text, font, size, color, layout: RefCell::new(None), wrapping: true, cached_size: 0. }
     }
 
     pub fn set_color(&mut self, color: Color) {
@@ -40,12 +45,19 @@ impl super::UiElement for Label {
     fn as_any(&self) -> &dyn std::any::Any { self }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
-    fn layout(&mut self, _rect: &Rectangle, _helper: &mut WidgetHelper) -> V2 {
-        let layout = self.layout.borrow();
-        match &*layout {
+    fn layout(&mut self, rect: &Rectangle, helper: &mut WidgetHelper) -> Rectangle {
+        let mut layout = self.layout.borrow_mut();
+        let size = match &*layout {
             Some(l) => l.size(),
-            None => V2::new(0., 0.),
-        }  
+            None => if self.wrapping { V2::new(rect.width(), 0.) } else { V2::new(0., 0.) },
+        };
+
+        if self.wrapping && self.cached_size != size.x {
+            *layout = None;
+        }
+
+        let pos = helper.align(rect, &size);
+        Rectangle::new(pos, size)
     }
 
     fn render(&self, graphics: &mut Graphics, rect: &Rectangle) {
@@ -53,11 +65,12 @@ impl super::UiElement for Label {
             let position = rect.top_left();
             let mut layout = self.layout.borrow_mut();
             if layout.is_none() {
-                *layout = Some(font.layout_text(graphics, &self.text, self.size));
+                let size = if self.wrapping { rect.width() as i32 } else { i32::MAX };
+                *layout = Some(font.layout_text_with_wrap(graphics, &self.text, self.size, size));
             }
             graphics.draw_text(position, self.color, layout.as_ref().unwrap());
         }
     }
 
-    fn update(&mut self, _state: &mut UpdateState, helper: &mut WidgetHelper, _rect: &Rectangle) { }
+    fn update(&mut self, _state: &mut UpdateState, _helper: &mut WidgetHelper, _rect: &Rectangle) { }
 }

@@ -2,7 +2,7 @@ use crate::V2;
 use cgmath::MetricSpace;
 use crate::graphics::Color;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate};
-use crate::messages::{MessageHandler, Messages};
+use crate::messages::{MessageHandler, Messages, MessageContext};
 use crate::utils::Rectangle;
 
 pub struct Layout { 
@@ -55,18 +55,18 @@ impl crate::entity::EntityBehavior for Layout {
     fn render(&self, _e: &Entity, graphics: &mut crate::Graphics) {
         let grid_size = Layout::grid_size();
         let rect = crate::graphics::screen_rect();
-        graphics.draw_rectangle(rect.into(), Color::GREEN);
+        graphics.draw_rectangle(rect, Color::GREEN);
 
         for i in 0..self.layout.len() - 1 {
             let p1 = self.layout[i];
             let p2 = self.layout[i + 1];
 
             let rect = Rectangle::new(p1, (p2 - p1) + V2::new(grid_size, grid_size));
-            graphics.draw_rectangle(rect.into(), Color::YELLOW);
+            graphics.draw_rectangle(rect, Color::YELLOW);
         }
     }
 }
 impl MessageHandler for Layout {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Messages) {}
+    fn process(&mut self, _message: &Messages, _context: &mut MessageContext) {}
 }

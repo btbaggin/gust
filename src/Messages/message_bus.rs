@@ -1,4 +1,4 @@
-use super::{Messages, MessageHandler};
+use super::{Messages, MessageHandler, MessageContext};
 use std::collections::VecDeque;
 
 pub type SharedMessageBus = std::rc::Rc<std::cell::RefCell<MessageBus>>;
@@ -7,7 +7,7 @@ pub struct MessageBus {
     recipients: [Option<Vec<*mut dyn MessageHandler>>; 256]
 }
 impl MessageBus {
-    pub fn new() -> MessageBus {
+    pub fn new() -> MessageBus {    
         MessageBus {
             messages: VecDeque::new(),
             recipients: crate::utils::init_optional_array_to_blank(),
@@ -17,14 +17,14 @@ impl MessageBus {
         self.messages.push_back(message);
     }
 
-    pub fn process_messages(&mut self) {
+    pub fn process_messages(&mut self, context: &mut MessageContext) {
         while let Some(m) = self.messages.pop_front() {
             let kind = super::raw_kind(&m);
 
             if let Some(recipients) = &mut self.recipients[kind as usize] {
                 for r in &mut recipients.iter() {
                     let handler: &mut dyn MessageHandler = unsafe { (*r).as_mut().expect("Message handler was not property remove from message bus") };
-                    handler.process(&m);
+                    handler.process(&m, context);
                 }
             }
         }
@@ -63,4 +63,7 @@ impl MessageBus {
             handlers.remove(i);
         }
     }
+}
+impl Default for MessageBus {
+    fn default() -> Self { Self::new() }
 }

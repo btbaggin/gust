@@ -1,15 +1,12 @@
 use crate::entity::{SceneBehavior, SceneLoad, EntityCreationOptions, EntityManager, EntityHandle};
-use crate::gust::{player::Player, enemy::EnemySpawner, enemy::Wave, cards::Manager, cards::Card};
+use crate::gust::{player::Player, enemy::EnemySpawner, tower::Tower, enemy::Wave, cards::{Manager, Card, Modifier, ModifierType}};
 use crate::job_system::ThreadSafeJobQueue;
-use crate::messages::{Messages, MessageHandler};
+use crate::messages::{Messages, MessageHandler, MessageContext};
 use crate::assets::{Fonts};
 use crate::ui::{LabeledValue, HorizontalAlignment, VerticalAlignment, DockContainer};
-use crate::V2;
 use crate::input::Actions;
 use crate::graphics::Color;
 use std::collections::HashMap;
-use std::rc::Rc;
-use std::cell::RefCell;
 
 mod layout;
 pub use layout::Layout;
@@ -26,19 +23,41 @@ pub struct Level {
     spawner: EnemySpawner,
     status: LevelStatus,
     indicator: Option<EntityHandle>,
+    gold: u32,
 }
 impl Level {
     pub fn new() -> Level {
         Level { 
             spawner: EnemySpawner::new(),
             status: LevelStatus::InProgress,
-            indicator: None
+            indicator: None,
+            gold: 100
         }
+    }
+
+    fn try_purchase(&mut self, cost: u32, root: &mut crate::ui::Widget) -> bool {
+        if cost > self.gold {
+            return false
+        }
+
+        self.gold -= cost;
+        if let Some(g) = root.find_mut::<LabeledValue<u32>>("gold") {
+            g.set_value(self.gold);
+        }
+        true
+    }
+
+    fn handle_tower(&mut self, state: &mut crate::UpdateState, root: &mut crate::ui::Widget) {
+        if state.action_pressed(Actions::SpawnTower1) && self.try_purchase(25, root) {
+            let tower = Tower::new(10., 5., 200.);
+            state.entities.create_at(tower, state.mouse_pos());
+        }
+
+        //TODO collision checking
     }
 }
 impl SceneBehavior for Level {
-    fn load(&mut self, _queue: ThreadSafeJobQueue, entities: &mut EntityManager) {    
-        let root = crate::ui::root();
+    fn load(&mut self, _queue: ThreadSafeJobQueue, entities: &mut EntityManager, root: &mut crate::ui::Widget) {    
         root.with_named_child(LabeledValue::new("Health", MAX_HEALTH, Fonts::Regular, 24., Color::WHITE), "health")
             .with_h_alignment(HorizontalAlignment::Left)
             .with_v_alignment(VerticalAlignment::Top);
@@ -46,7 +65,11 @@ impl SceneBehavior for Level {
             .with_h_alignment(HorizontalAlignment::Right)
             .with_v_alignment(VerticalAlignment::Top);
 
-        let cards = vec![Card::new(vec!()), Card::new(vec!()), Card::new(vec!())];
+        let cards = vec![
+            Card::new(vec![Modifier::new(ModifierType::Flat(5.), "attack_speed")], String::from("Increases attack speed")),
+            Card::new(vec![Modifier::new(ModifierType::Percent(0.25), "damage")], String::from("Increases damage")),
+            Card::new(vec![Modifier::new(ModifierType::Flat(100.), "range")], String::from("Increases range"))
+        ];
         root.with_named_child(Manager::new(cards), "card_manager")
             .with_v_alignment(VerticalAlignment::Bottom);
 
@@ -61,24 +84,19 @@ impl SceneBehavior for Level {
         let layout = crate::gust::level::Layout::new(&level.layout);
         entities.create_options(layout, EntityCreationOptions::Tag);
 
-        for t in &level.towers {
-            let tower = crate::gust::tower::Tower::new(10., 5., 200.);
-            entities.create_at(tower, V2::new(t.0 as f32 * 32., t.1 as f32 * 32.));
-        }
-
         let player = Player::new();
         entities.create_options(player, EntityCreationOptions::Tag);
     }
     fn unload(&mut self) {}
-    fn update(&mut self, state: &mut crate::UpdateState) -> SceneLoad {
+    fn update(&mut self, state: &mut crate::UpdateState, root: &mut crate::ui::Widget) -> SceneLoad {
         self.spawner.update(state.delta_time, state.entities);
+        self.handle_tower(state, root);
 
         //Show tower indicator
         if state.action_pressed(Actions::Select) {
-            let entities = state.quad_tree.at_point::<crate::gust::tower::Tower>(state.mouse_pos(), state.entities);
+            let entities = state.quad_tree.at_point::<Tower>(state.mouse_pos(), state.entities);
             assert!(entities.len() <= 1);
 
-            let root = crate::ui::root();
             if let Some(i) = self.indicator && 
                let Some(e) = state.entities.get_mut(&i) {
                 e.destroy();
@@ -95,7 +113,7 @@ impl SceneBehavior for Level {
                     .add_child(LabeledValue::new("Damage", t.damage(), Fonts::Regular, 24., Color::WHITE))
                     .add_child(LabeledValue::new("Attack Rate", t.attack_speed(), Fonts::Regular, 24., Color::WHITE))
                     .add_child(LabeledValue::new("Range", t.range(), Fonts::Regular, 24., Color::WHITE));
-                self.indicator = Some(state.entities.create_at(crate::gust::tower::Indicator::new(200.), e.position));
+                self.indicator = Some(state.entities.create_at(crate::gust::tower::Indicator::new(t.range()), e.position));
             }
         }
 
@@ -105,17 +123,16 @@ impl SceneBehavior for Level {
             LevelStatus::Fail => SceneLoad::Unload,
         }
     }
-    fn render(&self, graphics: &mut crate::Graphics) { }
+    fn render(&self, _graphics: &mut crate::Graphics) { }
 }
 
 impl MessageHandler for Level {
     crate::handle_messages!(Messages::EnemyGotToEnd(0), Messages::EnemyKilled);
     
-    fn process(&mut self, message: &Messages) { 
+    fn process(&mut self, message: &Messages, context: &mut MessageContext) { 
         match message {
             Messages::EnemyGotToEnd(damage) => {
-                let root = crate::ui::root();
-                let h = root.find_mut::<LabeledValue<u32>>("health").unwrap();
+                let h = context.root.find_mut::<LabeledValue<u32>>("health").unwrap();
                 let current = h.value();
                 let damage = u32::min(*damage, current);
                 h.set_value(current - damage);
@@ -129,10 +146,10 @@ impl MessageHandler for Level {
                 }
             },
             Messages::EnemyKilled => {
-                let root = crate::ui::root();
-                let g = root.find_mut::<LabeledValue<u32>>("gold").unwrap();
-                let gold = g.value();
-                g.set_value(gold + 10);
+                self.gold += 10;
+                if let Some(g) = context.root.find_mut::<LabeledValue<u32>>("gold") {
+                    g.set_value(self.gold);
+                }
                 if self.spawner.mark_enemy_dead() {
                     self.status = LevelStatus::Success
                 }

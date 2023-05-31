@@ -20,23 +20,27 @@ impl crate::ui::UiElement for Manager {
     fn as_any(&self) -> &dyn std::any::Any { self }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
-    fn layout(&mut self, rect: &Rectangle, helper: &mut WidgetHelper) -> V2 {
+    fn layout(&mut self, rect: &Rectangle, helper: &mut WidgetHelper) -> Rectangle {
         let width = rect.width() * 0.75;
         let height = rect.height() * 0.1;
         let size = V2::new(width, height);
-        let rect = Rectangle::new(rect.top_left(), size);
+        let pos = helper.align(rect, &size);
+        let rect = Rectangle::new(pos, size);
         helper.layout_children(&rect);
 
-        size
+        rect
     }
 
     fn render(&self, _graphics: &mut Graphics, _rect: &Rectangle) { }
 
     fn update(&mut self, state: &mut UpdateState, helper: &mut WidgetHelper, _rect: &Rectangle) {
         if self.draw_timer.update(state.delta_time) {
-            let root = crate::ui::root();
-            Card::draw(&mut self.deck, root);
-            //TODO need to crate UI elements after update finishes
+            Card::draw(&mut self.deck, helper);
+        }
+
+        for (i, c) in helper.children.iter_mut().enumerate() {
+            let card = c.as_type_mut::<Card>();
+            card.start_offset = V2::new(i as f32 * 100., 0.)
         }
     }
 }

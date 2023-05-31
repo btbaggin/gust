@@ -7,12 +7,14 @@ use glium::glutin::event_loop::ControlFlow;
 use glium::glutin::window::{Fullscreen, WindowBuilder};
 use crate::V2;
 use crate::entity::{SceneBehavior};
+use crate::input::Actions;
 use crate::{input::Input, job_system::ThreadSafeJobQueue};
 use crate::messages::MessageBus;
 use crate::graphics::Graphics;
 use crate::physics::QuadTree;
 use crate::utils::Rectangle;
 use crate::entity::{EntityManager, Scene};
+use crate::ui::{Widget, Root};
 
 pub struct GlobalState {
     pub screen_size: V2,
@@ -25,8 +27,8 @@ impl GlobalState {
 
 pub trait WindowHandler {
     // fn on_start(&mut self) { }
-    fn on_update(&mut self, state: &mut crate::UpdateState, scene: &mut Scene) -> bool;
-    fn on_render(&mut self, graphics: &mut Graphics, scene_manager: &Scene, entities: &EntityManager);
+    fn on_update(&mut self, state: &mut crate::UpdateState, root: &mut crate::ui::Widget, scene: &mut Scene) -> bool;
+    fn on_render(&mut self, graphics: &mut Graphics, root: &crate::ui::Widget, scene: &Scene, entities: &EntityManager);
     fn on_frame_end(&mut self) { }
     fn on_resize(&mut self, _: u32, _: u32) { }
     fn on_focus(&mut self, _: bool) { }
@@ -39,8 +41,12 @@ pub fn global_state<'a>() -> &'a GlobalState {
     unsafe { GLOBAL_STATE_VAR.as_ref().unwrap() }
 }
 
-pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_frames: u32,
-                          mut input: Input, queue: ThreadSafeJobQueue, scene: Box<dyn SceneBehavior>, 
+pub fn start_game_loop<H>(title: &'static str,
+                          size: Option<(f32, f32)>,
+                          target_frames: u32,
+                          mut input: Input<Actions>,
+                          queue: ThreadSafeJobQueue,
+                          scene: Box<dyn SceneBehavior>, 
                           mut handler: H) -> ! 
     where H: WindowHandler + 'static {
     let el = glium::glutin::event_loop::EventLoop::new();
@@ -72,14 +78,14 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
 
     let message_bus = Rc::new(RefCell::new(MessageBus::new()));
     let entities = crate::entity::entity_manager();
+    let mut root = Widget::new(Root {}, None);
 
     let bounds = Rectangle::new(V2::new(0., 0.), size);
     let mut quad_tree = QuadTree::new(bounds);
-
  
     //Start scene
     let mut scene = crate::entity::Scene::new(scene);
-    scene.load(queue.clone(), message_bus.clone(), entities);
+    scene.load(queue.clone(), message_bus.clone(), entities, &mut root);
     
     //Run game
     el.run(move |event, _, control_flow| {
@@ -125,9 +131,9 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                     message_bus.clone(),
                     queue.clone(),
                     entities,
-                    &quad_tree
+                    &quad_tree,
                 );
-                if !handler.on_update(&mut state, &mut scene) {
+                if !handler.on_update(&mut state, &mut root, &mut scene) {
                     *control_flow = ControlFlow::Exit;
                     handler.on_stop();
                 }
@@ -135,7 +141,7 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 let mut messages = message_bus.borrow_mut();
                 unsafe { crate::physics::step_physics(expected_seconds_per_frame, &mut messages); }
 
-                handler.on_render(&mut window, &scene, entities);
+                handler.on_render(&mut window, &root, &scene, entities);
                 window.draw_frame();
                 
                 // TODO skip on frame end if game is running slow
@@ -143,7 +149,6 @@ pub fn start_game_loop<H>(title: &'static str, size: Option<(f32, f32)>, target_
                 
                 entities.dispose_entities(&mut messages);
                 quad_tree.update_positions(entities);
-                let root = crate::ui::root();
                 root.clear();
                 root.create_widgets();    
 

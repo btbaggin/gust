@@ -1,6 +1,7 @@
 use crate::graphics::Color;
 use crate::utils::{Rectangle, Tween};
 use crate::V2;
+use crate::assets::Fonts;
 
 pub struct HealthBar {
     max: f32,
@@ -26,5 +27,6 @@ impl HealthBar {
         let current_width = self.current.value() / self.max * width;//self.current / self.max as f32 * width;
         graphics.draw_rectangle(Rectangle::from_coords(top_left, V2::new(left + width, position.y + 10.)), Color::RED);
         graphics.draw_rectangle(Rectangle::from_coords(top_left, V2::new(left + current_width, position.y + 10.)), Color::GREEN);
+        graphics.draw_text_simple(top_left, Fonts::Regular, 14., Color::WHITE, &self.current.value().to_string());
     }
 }

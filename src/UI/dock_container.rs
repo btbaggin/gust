@@ -36,14 +36,17 @@ impl super::UiElement for DockContainer {
             graphics.draw_rectangle(bounds.clone(), b);
         }
     }
-    fn update(&mut self, _state: &mut UpdateState, helper: &mut WidgetHelper, _rect: &Rectangle) { }
-    fn layout(&mut self, rect: &Rectangle, helper: &mut WidgetHelper) -> V2 {
+    fn update(&mut self, _state: &mut UpdateState, _helper: &mut WidgetHelper, _rect: &Rectangle) { }
+    fn layout(&mut self, rect: &Rectangle, helper: &mut WidgetHelper) -> Rectangle {
         let width = rect.width() * self.width;
         let height = rect.height() * self.height;
 
         let mut offset = 0.;
         let child_count = helper.children.len();
         
+        let size = V2::new(width, height);
+        let pos = helper.align(rect, &size);
+        let rect = Rectangle::new(pos, size);
         for c in helper.children.iter_mut() {
             offset += match self.direction {
                 DockDirection::Horizontal => {
@@ -60,6 +63,6 @@ impl super::UiElement for DockContainer {
 
         }
 
-        V2::new(width, height)
+        rect
     }
 }

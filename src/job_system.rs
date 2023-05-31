@@ -47,7 +47,7 @@ impl JobQueue {
         self.queue.send(job).unwrap()
     }
 
-    pub fn send<T>(&mut self, job_type: JobType) {
+    pub fn send(&mut self, job_type: JobType) {
         let job = Job { state: None, job_type };
         self.queue.send(job).unwrap()
     }

@@ -70,17 +70,17 @@ impl<T: Eq + Hash> AnimationPlayer<T> {
                 let size = image.size();
                 let (x, y) = match self.orientation {
                     SpriteSheetOrientation::Vertical => {
-                        let y = (frame * animation.frame_size.y) as f32 / size.y as f32;
-                        ((animation.index * animation.frame_size.x) as f32 / size.x as f32, y)
+                        let y = (frame * animation.frame_size.y) as f32 / size.y;
+                        ((animation.index * animation.frame_size.x) as f32 / size.x, y)
 
                     },
                     SpriteSheetOrientation::Horizontal => {
-                        let x = (frame * animation.frame_size.x) as f32 / size.x as f32;
-                        (x, (animation.index * animation.frame_size.y) as f32 / size.y as f32)
+                        let x = (frame * animation.frame_size.x) as f32 / size.x;
+                        (x, (animation.index * animation.frame_size.y) as f32 / size.y)
                     }
                 };
                 
-                let sprite_size = V2::new(animation.frame_size.x as f32 / size.x as f32, animation.frame_size.y as f32 / size.y as f32);
+                let sprite_size = V2::new(animation.frame_size.x as f32 / size.x, animation.frame_size.y as f32 / size.y);
                 let frame = Rectangle::new(V2::new(x, y), sprite_size);
                 graphics.draw_rectangle_image_subset(rect, frame, image);
             }

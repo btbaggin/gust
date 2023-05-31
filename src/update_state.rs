@@ -7,15 +7,18 @@ use crate::physics::QuadTree;
 
 pub struct UpdateState<'a> {
     pub delta_time: f32,
-    input: &'a Input,
+    input: &'a Input<Actions>,
     pub message_bus: SharedMessageBus,
     pub queue: ThreadSafeJobQueue,
     pub entities: &'a mut EntityManager,
     pub quad_tree: &'a QuadTree,
 }
 impl<'a> UpdateState<'a> {
-    pub fn new(delta_time: f32, input: &'a Input, message_bus: SharedMessageBus,
-               queue: ThreadSafeJobQueue, entities: &'a mut EntityManager,
+    pub fn new(delta_time: f32,
+               input: &'a Input<Actions>,
+               message_bus: SharedMessageBus,
+               queue: ThreadSafeJobQueue,
+               entities: &'a mut EntityManager,
                quad_tree: &'a QuadTree) -> UpdateState<'a> {
         UpdateState { delta_time, input, message_bus, queue, entities, quad_tree }
     }

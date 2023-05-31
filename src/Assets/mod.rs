@@ -27,6 +27,7 @@ pub enum Fonts {
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum Sounds {
     Piano,
+    Shoot,
 }
 
 const ASSET_STATE_UNLOADED: u8 = 0;
@@ -88,6 +89,7 @@ pub fn initialize_asset_cache() {
     cache.insert(AssetTypes::Image(Images::Testing), AssetSlot::new("./resources/1bnn3.jpg"));
     cache.insert(AssetTypes::Font(Fonts::Regular), AssetSlot::new("./resources/font.ttf"));
     cache.insert(AssetTypes::Sound(Sounds::Piano), AssetSlot::new("./resources/piano.wav"));
+    cache.insert(AssetTypes::Sound(Sounds::Shoot), AssetSlot::new("./resources/shoot.wav"));
     cache.insert(AssetTypes::Image(Images::Slime), AssetSlot::new("./resources/slime.png"));
 }
 

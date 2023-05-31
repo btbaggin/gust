@@ -1,7 +1,8 @@
 use crate::V2;
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Messages};
+use crate::messages::{MessageHandler, Messages, MessageContext};
+use crate::assets::{Sound, Sounds, SoundHandle, SoundStatus, Fonts};
 use crate::gust::PhysicsLayers;
 use cgmath::InnerSpace;
 
@@ -11,7 +12,7 @@ pub struct Bullet {
     vector: V2,
 }
 impl Bullet {
-    pub fn fire(speed: f32, damage: f32, target: V2) -> Bullet {
+    pub fn fire(queue: &crate::job_system::ThreadSafeJobQueue, speed: f32, damage: f32, target: V2) -> Bullet {
         Bullet {
             speed,
             damage,
@@ -48,5 +49,5 @@ impl EntityBehavior for Bullet {
 }
 impl MessageHandler for Bullet {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Messages) {}
+    fn process(&mut self, _message: &Messages, _context: &mut MessageContext) {}
 }

@@ -6,7 +6,7 @@ use crate::job_system::ThreadSafeJobQueue;
 
 pub fn create_window(event_loop: &EventLoop<()>, builder: WindowBuilder, queue: ThreadSafeJobQueue) -> Graphics {
     let cb = glutin::ContextBuilder::new();
-    let display = Display::new(builder, cb, &event_loop).unwrap();
+    let display = Display::new(builder, cb, event_loop).unwrap();
 
     let blank_texture = create_blank_texture(&display);
     

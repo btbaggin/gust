@@ -24,6 +24,10 @@ impl Font {
     }
 
     pub fn layout_text(&self, graphics: &Graphics, text: &str, size: f32) -> Rc<TextLayout> {
+        self.layout_text_with_wrap(graphics, text, size, i32::MAX)
+    }
+
+    pub fn layout_text_with_wrap(&self, graphics: &Graphics, text: &str, size: f32, wrap_width: i32) -> Rc<TextLayout> {
         let scale = graphics.display.gl_window().window().scale_factor();
 
         let (cache_width, cache_height) = ((512.0 * scale) as u32, (512.0 * scale) as u32);
@@ -43,7 +47,7 @@ impl Font {
             glium::texture::MipmapsOption::NoMipmap,
         ).unwrap();
 
-        let (size, glyphs) = layout_paragraph(&self.font, Scale::uniform(size * scale as f32), i32::MAX, &text);
+        let (size, glyphs) = layout_paragraph(&self.font, Scale::uniform(size * scale as f32), wrap_width, text);
         for glyph in &glyphs {
             cache.queue_glyph(0, glyph.clone());
         }
@@ -110,7 +114,7 @@ fn layout_paragraph<'a>(font: &rusttype::Font<'a>, scale: Scale, width: i32, tex
         last_glyph_id = Some(base_glyph.id());
         let mut glyph = base_glyph.scaled(scale).positioned(caret);
         if let Some(bb) = glyph.pixel_bounding_box() {
-            if bb.max.x > width as i32 {
+            if bb.max.x > width {
                 caret = point(0.0, caret.y + advance_height);
                 glyph.set_position(caret);
                 last_glyph_id = None;

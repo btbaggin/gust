@@ -1,20 +1,26 @@
 #![allow(dead_code)]
 use std::sync::atomic::Ordering;
+use std::sync::Mutex;
 use std::time::Instant;
 use crate::logger::{PanicLogEntry, info};
 use crate::assets::AssetSlot;
 use crate::job_system::{RawDataPointer, JobType, JobQueue};
 use super::pooled_cache::PooledCacheIndex;
 use super::{AssetData, ASSET_STATE_LOADED, AssetTypes, get_slot_mut, get_slot_index, Sounds, asset_cache};
+use crate::generational_array::{GenerationalArray, GenerationalIndex};
 
-mod sound_list;
-pub use sound_list::{SoundList, sounds};
+const MAX_SOUNDS: usize = 64;
+pub type SoundHandle = GenerationalIndex;
+// mod sound_list;
+lazy_static::lazy_static! {
+    pub static ref SOUNDS: Mutex<GenerationalArray<PlayingSound, MAX_SOUNDS>> = Mutex::new(GenerationalArray::new());
+}
 
 #[cfg(target_os = "windows")]
 mod win32;
 
 // Audio engine taken from: https://github.com/FyroxEngine/Fyrox/tree/master/fyrox-sound
-pub const SAMPLE_RATE: u32 = 44100;
+pub const SAMPLE_RATE: u32 = 44100 * 1;
 
 #[derive(Debug)]
 pub enum SoundError {
@@ -35,27 +41,34 @@ pub struct Sound {
 impl Sound {
     pub fn play(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> SoundHandle {
         let handle = PlayingSound::new(queue, sound, SoundStatus::Playing);
-        let sounds = sounds();
-        sounds.push(handle)
+        let mut sounds = SOUNDS.lock().unwrap();
+        sounds.push(handle).0
     }
 
     pub fn repeat(queue: &crate::job_system::ThreadSafeJobQueue, sound: Sounds) -> SoundHandle {
         let handle = PlayingSound::new(queue, sound, SoundStatus::Looping);
-        let sounds = sounds();
-        sounds.push(handle)
+        let mut sounds = SOUNDS.lock().unwrap();
+        sounds.push(handle).0
     }
 
-    pub fn get(handle: SoundHandle) -> Option<&'static PlayingSound> { 
-        let sounds = sounds();
-        sounds.get(handle).as_ref()
+    // TODO error handling
+    pub fn status(handle: SoundHandle) -> SoundStatus {
+        let sounds = SOUNDS.lock().unwrap();
+        sounds.get(&handle).unwrap().status
     }
-
-    pub fn get_mut(handle: SoundHandle) -> Option<&'static mut PlayingSound> {
-        let sounds = sounds();
-        sounds.get_mut(handle).as_mut()
+    pub fn set_status(handle: SoundHandle, status: SoundStatus) {
+        let mut sounds = SOUNDS.lock().unwrap();
+        sounds.get_mut(&handle).unwrap().status = status
+    }
+    pub fn volume(handle: SoundHandle, ) -> f32 {
+        let sounds = SOUNDS.lock().unwrap();
+        sounds.get(&handle).unwrap().volume
+    }
+    pub fn set_volume(handle: SoundHandle, volume: f32) {
+        let mut sounds = SOUNDS.lock().unwrap();
+        sounds.get_mut(&handle).unwrap().volume = volume
     }
 }
-pub type SoundHandle = usize;
 
 pub struct PlayingSound {
     index: PooledCacheIndex,
@@ -74,7 +87,7 @@ impl PlayingSound {
         
         let index = get_slot_index(AssetTypes::Sound(sound));
         PlayingSound {
-            index: index,
+            index,
             samples_played: 0,
             volume: 1.,
             status
@@ -131,21 +144,22 @@ trait AudioDevice {
     }
 
     fn get_sound_samples(samples: &mut [(f32, f32)]) {
-        let sounds = sounds();
+        let mut sounds = SOUNDS.lock().unwrap();
+        // let sounds = sounds();
         let assets = asset_cache();
 
         let mut remove_indices = vec!();
-        for (i, sound) in sounds.iter_mut().enumerate() {
-            if let Some(handle) = sound {
-                match handle.status {
+        for handle in sounds.iter_index() {
+            if let Some(sound) = sounds.get_mut(&handle) {
+                match sound.status {
                     SoundStatus::Paused => continue,
                     SoundStatus::Stopped => {
-                        remove_indices.push(i);
+                        remove_indices.push(handle);
                     }
                     SoundStatus::Playing | SoundStatus::Looping => { 
-                        if let Some(data) = assets.get_index_mut(handle.index) {
-                            if Self::set_samples(data, handle, samples, handle.status == SoundStatus::Looping) {
-                                remove_indices.push(i);
+                        if let Some(data) = assets.get_index_mut(sound.index) {
+                            if Self::set_samples(data, sound, samples, sound.status == SoundStatus::Looping) {
+                                remove_indices.push(handle);
                             }
                         }
                     },
@@ -154,7 +168,7 @@ trait AudioDevice {
         }
 
         for i in remove_indices {
-            sounds.remove(i);
+            sounds.remove(&i);
         }
     }
 
@@ -217,7 +231,7 @@ pub fn load_sound_async(path: &'static str, slot: RawDataPointer) {
     info!("Loading sound asynchronously {:?}", path);
 
     let path = std::fs::canonicalize(path).expect("invalid sound file path");
-    let mut inp_file = std::fs::File::open(&path).log_and_panic();
+    let mut inp_file = std::fs::File::open(path).log_and_panic();
     let (_header, data) = wav::read(&mut inp_file).log_and_panic();
 
     let samples = match data {

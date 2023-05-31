@@ -110,7 +110,7 @@ pub trait EntityBehavior: crate::messages::MessageHandler {
 #[macro_export]
 macro_rules! entity {
     ($ty:ty) => {
-        fn id(&self) -> crate::entity::EntityId { std::any::TypeId::of::<$ty>() }
+        fn id(&self) -> $crate::entity::EntityId { std::any::TypeId::of::<$ty>() }
         fn as_any(&self) -> &dyn std::any::Any { self }
         fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
     };

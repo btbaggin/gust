@@ -11,7 +11,7 @@ use std::hash::Hash;
 use crate::{V2U, V2};
 use crate::entity::{Entity, EntityInitialization, EntityUpdate, EntityBehavior};
 use crate::physics::{PhysicsMaterial, Circle, CollisionShape};
-use crate::messages::{MessageHandler, Messages};
+use crate::messages::{MessageHandler, Messages, MessageContext};
 use crate::graphics::{AnimationPlayer, SpriteSheetOrientation};
 use crate::assets::Images;
 use crate::gust::PhysicsLayers;
@@ -95,5 +95,5 @@ impl EntityBehavior for Enemy {
 }
 impl MessageHandler for Enemy {
     crate::handle_messages!();
-    fn process(&mut self, _message: &Messages) {}
+    fn process(&mut self, _message: &Messages, _context: &mut MessageContext) {}
 }

@@ -1,5 +1,6 @@
 use crate::graphics::{Color, Vertex, RenderObjectTypes, Texture, CIRCLE_FRAGMENTS};
 use crate::utils::Rectangle;
+use crate::assets::{Fonts, request_font};
 use crate::V2;
 use std::rc::Rc;
 use crate::graphics::font::TextLayout;
@@ -22,6 +23,13 @@ impl crate::graphics::Graphics {
     pub fn draw_image(&mut self, rect: Rectangle, image: &Texture) {
         self.push_object(RenderObjectTypes::Quad, Some(image.handle()), rect.top_left(), rect.size());
         self.push_quad(V2::new(0., 0.), V2::new(1., 1.), Color::WHITE);
+    }
+
+    pub fn draw_text_simple(&mut self, position: V2, font: Fonts, size: f32, color: Color, text: &str) {
+        if let Some(font) = request_font(self, font) {
+            let layout = font.layout_text(self, text, size);
+            self.draw_text(position, color, &layout);
+        }
     }
 
     pub fn draw_text(&mut self, position: V2, color: Color, text: &Rc<TextLayout>) {
@@ -55,7 +63,7 @@ impl crate::graphics::Graphics {
         
                 let base = (glyph_count * 4) as u16;
                 verts.append(&mut vec![vertex1, vertex2, vertex3, vertex4]);
-                inds.append(&mut vec![base + 0, base + 1, base + 2, base + 2, base + 3, base + 0]);
+                inds.append(&mut vec![base, base + 1, base + 2, base + 2, base + 3, base]);
 
                 glyph_count += 1
             }
